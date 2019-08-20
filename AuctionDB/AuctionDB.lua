@@ -117,7 +117,7 @@ function ADB.Slash(arg) -- can't be a : because used directly as slash command
     rest = string.sub(arg, posRest + 1)
   end
   if cmd == "b" then
-    local subText = L["Please submit on discord or on curse or github or email"]
+    local subText = L["Please submit on discord or https://|cFF99E5FFbit.ly/ahbug|r or email"]
     ADB:PrintDefault(L["AuctionDB bug report open: "] .. subText)
     -- base molib will add version and date/timne
     ADB:BugReport(subText, "@project-abbreviated-hash@\n\n" .. L["Bug report from slash command"])
