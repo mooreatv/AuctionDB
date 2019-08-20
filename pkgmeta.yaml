@@ -9,7 +9,6 @@ ignore:
     - MoLib/luaformat.cfg
     - MoLib/README.md
     - MoLib/tests
-    - MoLib/Realms.lua
 
 externals:
     MoLib:

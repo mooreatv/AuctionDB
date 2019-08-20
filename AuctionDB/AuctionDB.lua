@@ -46,11 +46,12 @@ function ADB:SetupMenu()
     if button == "RightButton" then
       ADB.Slash("config")
     else
-      ADB:PrintDefault("AuctionDB TODO: do something when clicked...")
+      ADB:PrintDefault("AuctionDB wip... context for now...")
+      ADB.Slash("context")
     end
   end)
   b.tooltipText = "|cFFF2D80CAuction House DataBase|r:\n" ..
-                    L["|cFF99E5FFLeft|r click to TODO\n" .. "|cFF99E5FFRight|r click for options\n\n" ..
+                    L["|cFF99E5FFLeft|r click open offline\n" .. "|cFF99E5FFRight|r click for options\n\n" ..
                       "Drag to move this button."]
   b:SetScript("OnEnter", function()
     ADB:ShowToolTip(b, "ANCHOR_LEFT")
@@ -63,7 +64,6 @@ function ADB:SetupMenu()
   end)
   ADB:MakeMoveable(b, ADB.SavePositionCB)
   ADB.mmb = b
-  ADB.mmb.icon = icon
 end
 
 function ADB.SavePositionCB(_f, pos, _scale)
@@ -128,6 +128,8 @@ function ADB.Slash(arg) -- can't be a : because used directly as slash command
     -- version
     ADB:PrintDefault("AuctionDB " .. ADB.manifestVersion ..
                        " (@project-abbreviated-hash@) by MooreaTv (moorea@ymail.com)")
+  elseif ADB:StartsWith(arg, "context") then
+    ADB:AHContext()
   elseif cmd == "c" then
     -- Show config panel
     -- InterfaceOptionsList_DisplayPanel(ADB.optionsPanel)
@@ -259,7 +261,8 @@ end
 -- bindings / localization
 _G.AUCTIONDB = "AuctionDB"
 _G.BINDING_HEADER_ADB = L["Auction House DataBase addon key bindings"]
-_G.BINDING_NAME_ADB_SOMETHING = L["TODO something"] .. " |cFF99E5FF/ahdb todo|r"
+_G.BINDING_NAME_ADB_SCAN = L["AH Scan"] .. " |cFF99E5FF/ahdb scan|r"
+_G.BINDING_NAME_ADB_OPEN = L["AHDB Open"] .. " |cFF99E5FF/ahdb open|r"
 
 -- ADB.debug = 2
 ADB:Debug("ahdb main file loaded")

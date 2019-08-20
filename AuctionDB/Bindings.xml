@@ -6,15 +6,10 @@
    defaults don't work (https://github.com/Stanzilla/WoWUIBugs/issues/12) so removed them for now
 -->
 <Bindings>
-    <Binding name="ADB_SOMETHING" header="ADB" category="AUCTIONDB">
-        PixelPerfectAlign.Slash("TODO")
+    <Binding name="ADB_SCAN" header="ADB" category="AUCTIONDB">
+        PixelPerfectAlign.Slash("scan")
     </Binding>
-    <!--
-    <Binding name="ADB_COORDS" category="AUCTIONDB">
-        PixelPerfectAlign.Slash("coords")
+    <Binding name="ADB_OPEN" category="AUCTIONDB">
+        PixelPerfectAlign.Slash("open")
     </Binding>
-    <Binding name="ADB_INFO" category="AUCTIONDB">
-        PixelPerfectAlign.Slash("info")
-    </Binding>
--->
 </Bindings>
