@@ -7,9 +7,9 @@
 -->
 <Bindings>
     <Binding name="ADB_SCAN" header="ADB" category="AUCTIONDB">
-        PixelPerfectAlign.Slash("scan")
+        AuctionDB.Slash("scan")
     </Binding>
     <Binding name="ADB_OPEN" category="AUCTIONDB">
-        PixelPerfectAlign.Slash("open")
+        AuctionDB.Slash("open")
     </Binding>
 </Bindings>
