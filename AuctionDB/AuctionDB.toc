@@ -1,0 +1,14 @@
+## Interface: 80200
+## Title: Auction House DataBase
+## Notes: Auction House DataBase, records DB history and offline queries, for classic and more (|cFF99E5FF/ahdb|r)
+## Author: MooreaTV moorea@ymail.com
+## Version: @project-version@
+## DefaultState: Enabled
+## LoadOnDemand: 0
+## SavedVariables: AuctionDBSaved
+## Globe: check-classic
+MoLib/MoLib.lua
+MoLib/MoLibUI.lua
+MoLib/MoLibDB.lua
+MoLib/MoLibAH.lua
+AuctionDB.lua

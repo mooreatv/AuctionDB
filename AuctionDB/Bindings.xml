@@ -1,0 +1,20 @@
+<!--
+   AuctionDB by MooreaTV moorea@ymail.com (c) 2019 All rights reserved
+   Licensed under LGPLv3 - No Warranty
+   (contact the author if you need a different license)
+
+   defaults don't work (https://github.com/Stanzilla/WoWUIBugs/issues/12) so removed them for now
+-->
+<Bindings>
+    <Binding name="ADB_SOMETHING" header="ADB" category="AUCTIONDB">
+        PixelPerfectAlign.Slash("TODO")
+    </Binding>
+    <!--
+    <Binding name="ADB_COORDS" category="AUCTIONDB">
+        PixelPerfectAlign.Slash("coords")
+    </Binding>
+    <Binding name="ADB_INFO" category="AUCTIONDB">
+        PixelPerfectAlign.Slash("info")
+    </Binding>
+-->
+</Bindings>
