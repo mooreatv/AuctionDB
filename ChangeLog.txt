@@ -4,6 +4,8 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v0.02.00 Aug 20th 2019
+- Initial functional version, click to scan
 v0.01.01 August 20th 2019
 - AH context call and key bindings (and pick up newer MoLib)
 v0.01.00 August 19th 2019

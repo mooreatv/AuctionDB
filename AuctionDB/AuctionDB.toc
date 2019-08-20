@@ -10,5 +10,6 @@
 MoLib/MoLib.lua
 MoLib/MoLibUI.lua
 MoLib/MoLibDB.lua
+MoLib/Realms.lua
 MoLib/MoLibAH.lua
 AuctionDB.lua

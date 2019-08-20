@@ -46,12 +46,12 @@ function ADB:SetupMenu()
     if button == "RightButton" then
       ADB.Slash("config")
     else
-      ADB:PrintDefault("AuctionDB wip... context for now...")
-      ADB.Slash("context")
+      ADB:PrintDefault("AuctionDB wip, manual scan for now...")
+      ADB.Slash("scan")
     end
   end)
   b.tooltipText = "|cFFF2D80CAuction House DataBase|r:\n" ..
-                    L["|cFF99E5FFLeft|r click open offline\n" .. "|cFF99E5FFRight|r click for options\n\n" ..
+                    L["|cFF99E5FFLeft|r click to scan or open offline\n" .. "|cFF99E5FFRight|r click for options\n\n" ..
                       "Drag to move this button."]
   b:SetScript("OnEnter", function()
     ADB:ShowToolTip(b, "ANCHOR_LEFT")
@@ -103,7 +103,8 @@ ADB:RegisterEventHandlers(additionalEventHandlers)
 
 function ADB:Help(msg)
   ADB:PrintDefault("AuctionDB: " .. msg .. "\n" .. "/ahdb config -- open addon config\n" ..
-                     "/ahdb bug -- report a bug\n" .. "/ahdb debug on/off/level -- for debugging on at level or off.\n" ..
+                     "/ahdb scan -- manual full scan\n" .. "/ahdb bug -- report a bug\n" ..
+                     "/ahdb debug on/off/level -- for debugging on at level or off.\n" ..
                      "/ahdb version -- shows addon version")
 end
 
@@ -128,6 +129,9 @@ function ADB.Slash(arg) -- can't be a : because used directly as slash command
     -- version
     ADB:PrintDefault("AuctionDB " .. ADB.manifestVersion ..
                        " (@project-abbreviated-hash@) by MooreaTv (moorea@ymail.com)")
+  elseif cmd == "s" then
+    -- scan
+    ADB:AHSaveAll()
   elseif ADB:StartsWith(arg, "context") then
     ADB:AHContext()
   elseif cmd == "c" then
