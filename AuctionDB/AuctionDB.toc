@@ -1,4 +1,4 @@
-## Interface: 80200
+## Interface: 11302
 ## Title: Auction House DataBase
 ## Notes: Auction House DataBase, records DB history and offline queries, for classic and more (|cFF99E5FF/ahdb|r)
 ## Author: MooreaTV moorea@ymail.com

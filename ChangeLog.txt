@@ -4,6 +4,7 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
-v0.01.00 XXXX 2019
+v0.01.00 August 19th 2019
+- Options/config pane
 - initial version, created from MooreaTv/WowAddonTemplate
 ./newaddon.sh 'AuctionDB' 'ADB' 'Auction House DataBase' 'AUCTIONDB' 'ahdb' 'Auction House DataBase, records DB history and offline queries, for classic and more'

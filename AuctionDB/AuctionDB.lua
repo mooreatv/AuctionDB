@@ -28,6 +28,10 @@ ADB.addonHash = "@project-abbreviated-hash@"
 ADB.savedVarName = "AuctionDBSaved"
 -- ADB.author = "MooreaTv" -- override default author
 
+ADB.autoScan = true
+ADB.autoScanDelay = 10
+ADB.autoSave = true
+
 -- TODO: move most of this to MoLib
 
 function ADB:SetupMenu()
@@ -89,7 +93,7 @@ local additionalEventHandlers = {
     if ADB.mmb then
       ADB:SetupMenu() -- buffer with the one above?
     end
-  end,
+  end
 
 }
 
@@ -99,9 +103,8 @@ ADB:RegisterEventHandlers(additionalEventHandlers)
 
 function ADB:Help(msg)
   ADB:PrintDefault("AuctionDB: " .. msg .. "\n" .. "/ahdb config -- open addon config\n" ..
-                          "/ahdb bug -- report a bug\n" ..
-                          "/ahdb debug on/off/level -- for debugging on at level or off.\n" ..
-                          "/ahdb version -- shows addon version")
+                     "/ahdb bug -- report a bug\n" .. "/ahdb debug on/off/level -- for debugging on at level or off.\n" ..
+                     "/ahdb version -- shows addon version")
 end
 
 function ADB.Slash(arg) -- can't be a : because used directly as slash command
@@ -124,7 +127,7 @@ function ADB.Slash(arg) -- can't be a : because used directly as slash command
   elseif cmd == "v" then
     -- version
     ADB:PrintDefault("AuctionDB " .. ADB.manifestVersion ..
-                            " (@project-abbreviated-hash@) by MooreaTv (moorea@ymail.com)")
+                       " (@project-abbreviated-hash@) by MooreaTv (moorea@ymail.com)")
   elseif cmd == "c" then
     -- Show config panel
     -- InterfaceOptionsList_DisplayPanel(ADB.optionsPanel)
@@ -169,20 +172,24 @@ function ADB:CreateOptionsPanel()
   p:addText(L["These options let you control the behavior of AuctionDB"] .. " " .. ADB.manifestVersion ..
               " @project-abbreviated-hash@"):Place()
 
-  -- TODO add some option
+  local autoScan = p:addCheckBox(L["Auto Scan"], L["Automatically scan the AH whenever possible"]):Place(4, 30)
+  local scanDelay = p:addSlider(L["Auto scan delay"], L["How long to wait for cancellation before scan start"], 2, 10,
+                                1, L["2 sec"], L["10 sec"]):Place(16, 14) -- need more vspace
+  local autoSave = p:addCheckBox(L["Auto Save/Reload"],
+                                 L["Automatically /reload in order to save the DataBase at the end of the scan"]):Place(
+                     4, 30)
 
   p:addText(L["Development, troubleshooting and advanced options:"]):Place(40, 20)
 
-  p:addButton("Bug Report", L["Get Information to submit a bug."] .. "\n|cFF99E5FF/ahdb bug|r", "bug"):Place(4,
-                                                                                                                    20)
+  p:addButton("Bug Report", L["Get Information to submit a bug."] .. "\n|cFF99E5FF/ahdb bug|r", "bug"):Place(4, 20)
 
   p:addButton(L["Reset minimap button"], L["Resets the minimap button to back to initial default location"], function()
     ADB:SetSaved("buttonPos", nil)
     ADB:SetupMenu()
   end):Place(4, 20)
 
-  local debugLevel = p:addSlider(L["Debug level"], L["Sets the debug level"] .. "\n|cFF99E5FF/ahdb debug X|r", 0,
-                                 9, 1, "Off"):Place(16, 30)
+  local debugLevel = p:addSlider(L["Debug level"], L["Sets the debug level"] .. "\n|cFF99E5FF/ahdb debug X|r", 0, 9, 1,
+                                 "Off"):Place(16, 30)
 
   function p:refresh()
     ADB:Debug("Options Panel refresh!")
@@ -200,6 +207,9 @@ function ADB:CreateOptionsPanel()
   function p:HandleRefresh()
     p:Init()
     debugLevel:SetValue(ADB.debug or 0)
+    autoScan:SetChecked(ADB.autoScan)
+    scanDelay:SetValue(ADB.autoScanDelay)
+    autoSave:SetChecked(ADB.autoSave)
   end
 
   function p:HandleOk()
@@ -221,6 +231,9 @@ function ADB:CreateOptionsPanel()
       end
     end
     ADB:SetSaved("debug", sliderVal)
+    ADB:SetSaved("autoScan", autoScan:GetChecked())
+    ADB:SetSaved("autoScanDelay", scanDelay:GetValue())
+    ADB:SetSaved("autoSave", autoSave:GetChecked())
   end
 
   function p:cancel()
