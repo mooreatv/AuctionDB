@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v0.03.00 Aug 21st 2019
+- Pick up MoLib changes to split item DB and scan results yielding 30Mb -> 2Mb decrease
+ (+ couple Mb for itemDB but that's fixed cost with number of scans)
 v0.02.01 Aug 20th 2019
 - Initial functional version, click to scan
 v0.01.01 August 20th 2019
