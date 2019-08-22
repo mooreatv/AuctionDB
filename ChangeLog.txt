@@ -4,6 +4,10 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v0.05.00 Aug 22nd 2019
+- The build now includes localization
+- bug fix: use PLAYER_REGEN_DISABLED as the event to hide our button, avoids combat error
+  (thanks humfras!)
 v0.04.00 Aug 22nd 2019
 - Now with functional auto scan as well as secure button to target, scan and reload
 - options panel controls how many newly found items should be shown in each scan

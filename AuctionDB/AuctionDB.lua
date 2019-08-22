@@ -52,9 +52,9 @@ function ADB:SetupMenu()
       ADB.Slash("scan")
     end
   end)
-  b.tooltipText = "|cFFF2D80CAuction House DataBase|r:\n" ..
-                    L["|cFF99E5FFLeft|r click to scan or open offline\n" .. "|cFF99E5FFRight|r click for options\n\n" ..
-                      "Drag to move this button."]
+  b.tooltipText =
+    "|cFFF2D80CAuction House DataBase|r:\n" .. L["|cFF99E5FFLeft|r click to scan or open offline"] .. "\n" ..
+      L["|cFF99E5FFRight|r click for options"] .. "\n\n" .. L["Drag to move this button."]
   b:SetScript("OnEnter", function()
     ADB:ShowToolTip(b, "ANCHOR_LEFT")
     ADB.inButton = true
@@ -78,7 +78,7 @@ ADB.doItButtonName = "AHDB_doItButton"
 function ADB:DoItButton(cmd, msg)
   local b = ADB.doItButton
   local ttip1 = "|cFFF2D80CAuction House DataBase|r: " ..
-                  L["Action Button!\n\n|cFF99E5FFLeft|r click (or hit space/return) to:\n\n      "]
+                  L["Action Button!\n\n|cFF99E5FFLeft|r click (or hit space/return) to:"] .. "\n\n      "
   local ttip2 = "\n\n" .. L["Drag to move this button."]
   if not b then
     b = CreateFrame("Button", ADB.doItButtonName, UIParent, "InsecureActionButtonTemplate")
@@ -177,7 +177,7 @@ local additionalEventHandlers = {
     end
   end,
 
-  PLAYER_ENTER_COMBAT = function(_self)
+  PLAYER_REGEN_DISABLED = function(_self)
     ADB:HideDoItButton()
   end
 
@@ -291,10 +291,10 @@ function ADB:CreateOptionsPanel()
   end
   ADB:Debug("Creating Options Panel")
 
-  local p = ADB:Frame(L["AuctionDB"])
+  local p = ADB:Frame("AuctionDB")
   ADB.optionsPanel = p
   p:addText(L["AuctionDB options"], "GameFontNormalLarge"):Place()
-  p:addText(L["Auction House DataBase, records DB history and offline queries, for classic and more"]):Place()
+  p:addText(L["Auction House DataBase: records DB history, offline queries and more."]):Place()
   p:addText(L["These options let you control the behavior of AuctionDB"] .. " " .. ADB.manifestVersion ..
               " @project-abbreviated-hash@"):Place()
 
@@ -302,15 +302,15 @@ function ADB:CreateOptionsPanel()
   local scanDelay = p:addSlider(L["Auto scan delay"], L["How long to wait for cancellation before scan start"], 2, 10,
                                 1, L["2 sec"], L["10 sec"]):Place(16, 14) -- need more vspace
   local autoSave = p:addCheckBox(L["Auto Save/Reload"],
-                                 L["Automatically /reload in order to save the DataBase at the end of the scan"]):Place(
-                     4, 30)
+                                 L["Automatically prompts for /reload in order to save the DataBase at the end of the scan"])
+                     :Place(4, 30)
 
-  local newItems = p:addSlider(L["Show new items"], L["Shows new items found in scan up to these many"], 0, 100, 5,
-                               L["None"]):Place(16, 30) -- need more vspace
+  local newItems = p:addSlider(L["Show new items"], L["Shows never seen before items found in scan up to these many"],
+                               0, 100, 5, L["None"]):Place(16, 30) -- need more vspace
 
   p:addText(L["Development, troubleshooting and advanced options:"]):Place(40, 20)
 
-  p:addButton("Bug Report", L["Get Information to submit a bug."] .. "\n|cFF99E5FF/ahdb bug|r", "bug"):Place(4, 20)
+  p:addButton(L["Bug Report"], L["Get Information to submit a bug."] .. "\n|cFF99E5FF/ahdb bug|r", "bug"):Place(4, 20)
 
   p:addButton(L["Reset minimap button"], L["Resets the minimap button to back to initial default location"], function()
     ADB:SetSaved("buttonPos", nil)
