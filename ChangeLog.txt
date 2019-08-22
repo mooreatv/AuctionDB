@@ -6,6 +6,7 @@ Coming next:
 
 v0.04.00 Aug 22nd 2019
 - Now with functional auto scan as well as secure button to target, scan and reload
+- options panel controls how many newly found items should be shown in each scan
 v0.03.00 Aug 21st 2019
 - Pick up MoLib changes to split item DB and scan results yielding 30Mb -> 2Mb decrease
  (+ couple Mb for itemDB but that's fixed cost with number of scans)

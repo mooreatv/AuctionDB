@@ -31,6 +31,7 @@ ADB.savedVarName = "AuctionDBSaved"
 ADB.autoScan = false
 ADB.autoScanDelay = 10
 ADB.autoSave = true
+ADB.showNewItems = 10 -- show first 100 new items seen
 
 -- TODO: move most of this to MoLib
 
@@ -114,33 +115,6 @@ function ADB:DoItButton(cmd, msg)
   b:Show()
 end
 
-function ADB.OnAccept(_, cmd)
-  ADB:PrintDefault("Running %", cmd)
-  RunMacroText(cmd) -- doesn't work: secure/protected
-  --DEFAULT_CHAT_FRAME.editBox:SetText(cmd)
-  --ChatEdit_SendText(DEFAULT_CHAT_FRAME.editBox, 0)
-end
-
-StaticPopupDialogs["AHDB_Popup"] = {
-  text = L["AuctionDB, run %s. %s"],
-  button1 = OKAY,
-  button2 = CANCEL,
-  enterClicksFirstButton = true,
-  whileDead = true,
-  hideOnEscape = 1, -- doesn't help when there is an edit box, real stuff is:
-  EditBoxOnEscapePressed = function(self, _data)
-    local widget = self:GetParent()
-    widget:Hide()
-  end,
-  OnAccept = ADB.OnAccept,
-  OnCancel = function(self, _data)
-    self:Hide()
-  end,
-  EditBoxOnEnterPressed = ADB.OnAccept,
-  timeout = 5
-  --  hasEditBox = true
-}
-
 -- hides and most importantly clears temp key binds
 function ADB:HideDoItButton()
   if ADB.doItButton then
@@ -161,7 +135,6 @@ function ADB:Execute(cmd, msg)
   end
   ADB:PrintDefault(L["AHDB: click the button, or hit space or enter to "] .. txt)
   ADB:DoItButton(cmd, msg)
-  -- StaticPopup_Show("AHDB_Popup", cmd, msg or "", cmd)
 end
 
 -- define ADB:AfterSavedVars() for post saved var loaded processing
@@ -206,7 +179,7 @@ local additionalEventHandlers = {
 
   PLAYER_ENTER_COMBAT = function(_self)
     ADB:HideDoItButton()
-  end,
+  end
 
 }
 
@@ -220,7 +193,7 @@ function ADB.Ticker() -- dot as it's ticker function
   end
 end
 
-ADB.tickerInterval = 12 -- do not make this too frequent! 1 min is plenty for a 1 scan/15 mins allowed anyway
+ADB.tickerInterval = 90 -- do not make this too frequent! 1 min 30s is plenty for a 1 scan/15 mins allowed anyway
 ADB.ticker = C_Timer.NewTicker(ADB.tickerInterval, ADB.Ticker)
 --
 
@@ -243,9 +216,8 @@ end
 
 function ADB:AHendOfScanCB()
   if ADB.autoSave then
-    ADB:Warning("Auto save is on, will reload now")
     -- C_UI.Reload()
-    ADB:Execute("/reload")
+    ADB:Execute("/reload", L["To Save the scan to SavedVariables"])
   end
 end
 
@@ -333,6 +305,9 @@ function ADB:CreateOptionsPanel()
                                  L["Automatically /reload in order to save the DataBase at the end of the scan"]):Place(
                      4, 30)
 
+  local newItems = p:addSlider(L["Show new items"], L["Shows new items found in scan up to these many"], 0, 100, 5,
+                               L["None"]):Place(16, 30) -- need more vspace
+
   p:addText(L["Development, troubleshooting and advanced options:"]):Place(40, 20)
 
   p:addButton("Bug Report", L["Get Information to submit a bug."] .. "\n|cFF99E5FF/ahdb bug|r", "bug"):Place(4, 20)
@@ -364,6 +339,7 @@ function ADB:CreateOptionsPanel()
     autoScan:SetChecked(ADB.autoScan)
     scanDelay:SetValue(ADB.autoScanDelay)
     autoSave:SetChecked(ADB.autoSave)
+    newItems:SetValue(ADB.showNewItems)
   end
 
   function p:HandleOk()
@@ -388,6 +364,7 @@ function ADB:CreateOptionsPanel()
     ADB:SetSaved("autoScan", autoScan:GetChecked())
     ADB:SetSaved("autoScanDelay", scanDelay:GetValue())
     ADB:SetSaved("autoSave", autoSave:GetChecked())
+    ADB:SetSaved("showNewItems", newItems:GetValue())
   end
 
   function p:cancel()
