@@ -8,6 +8,8 @@ for fn in $FILES; do
     l=${fn%%.*}
     echo "Working on $fn ($l)"
     echo "-- Generated file, do not edit." > $fn
+    echo >> $fn
     echo "if (GetLocale() ~= '$l') then return end" >> $fn
+    echo >> $fn
     echo "--@localization(locale=\"$l\", format=\"lua_additive_table\", same-key-is-true=true, handle-unlocalized=\"ignore\")@" >> $fn
 done
