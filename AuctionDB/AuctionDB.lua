@@ -28,7 +28,7 @@ ADB.addonHash = "@project-abbreviated-hash@"
 ADB.savedVarName = "AuctionDBSaved"
 -- ADB.author = "MooreaTv" -- override default author
 
-ADB.autoScan = true
+ADB.autoScan = false
 ADB.autoScanDelay = 10
 ADB.autoSave = true
 
@@ -38,6 +38,7 @@ function ADB:SetupMenu()
   ADB:WipeFrame(ADB.mmb)
   ADB.minimapButtonAngle = 0
   local b = ADB:minimapButton(ADB.buttonPos)
+  b.name = "AHDBminimapButton"
   local t = b:CreateTexture(nil, "ARTWORK")
   t:SetSize(19, 19)
   t:SetTexture("Interface/Addons/AuctionDB/AuctionDB.blp")
@@ -46,7 +47,7 @@ function ADB:SetupMenu()
     if button == "RightButton" then
       ADB.Slash("config")
     else
-      ADB:PrintDefault("AuctionDB wip, manual scan for now...")
+      ADB:PrintDefault("AuctionDB: manual scan requested...")
       ADB.Slash("scan")
     end
   end)
@@ -66,11 +67,102 @@ function ADB:SetupMenu()
   ADB.mmb = b
 end
 
-function ADB.SavePositionCB(_f, pos, _scale)
-  ADB:SetSaved("buttonPos", pos)
+function ADB.SavePositionCB(b, pos, _scale)
+  ADB:SetSaved(b.name .. "buttonPos", pos)
 end
 
 -- Events handling
+ADB.doItButtonName = "AHDB_doItButton"
+
+function ADB:DoItButton(cmd, msg)
+  local b = ADB.doItButton
+  local ttip1 = "|cFFF2D80CAuction House DataBase|r: " ..
+                  L["Action Button!\n\n|cFF99E5FFLeft|r click (or hit space/return) to:\n\n      "]
+  local ttip2 = "\n\n" .. L["Drag to move this button."]
+  if not b then
+    b = CreateFrame("Button", ADB.doItButtonName, UIParent, "InsecureActionButtonTemplate")
+    ADB.doItButton = b
+    b.name = "AHDBactionButton"
+    local inset = CreateFrame("Frame", nil, b, "InsetFrameTemplate")
+    inset:SetAllPoints()
+    inset:SetIgnoreParentAlpha(true)
+    b:SetFrameLevel(inset:GetFrameLevel() + 1)
+    b:SetAttribute("type", "macro")
+    b:SetSize(64, 64)
+    b:SetPoint("TOP", 0, -10)
+    b:SetAlpha(.9)
+    local t = b:CreateTexture(nil, "BACKGROUND")
+    t:SetTexture("Interface/Addons/AuctionDB/AuctionDB.blp")
+    t:SetAllPoints()
+    b:SetScript("OnEnter", function()
+      ADB:ShowToolTip(b, "ANCHOR_RIGHT")
+    end)
+    b:SetScript("OnLeave", function()
+      GameTooltip:Hide()
+    end)
+    b:SetScript("PostClick", function()
+      ADB:HideDoItButton()
+    end)
+    ADB:MakeMoveable(b, ADB.SavePositionCB)
+  end
+  b.cmd = cmd
+  b.tooltipText = ttip1 .. (msg or cmd) .. ttip2
+  b:SetAttribute("macrotext", cmd)
+  for _, key in next, {"ENTER", "SPACE", "RETURN"} do
+    SetOverrideBindingClick(b, true, key, ADB.doItButtonName)
+  end
+  b:Show()
+end
+
+function ADB.OnAccept(_, cmd)
+  ADB:PrintDefault("Running %", cmd)
+  RunMacroText(cmd) -- doesn't work: secure/protected
+  --DEFAULT_CHAT_FRAME.editBox:SetText(cmd)
+  --ChatEdit_SendText(DEFAULT_CHAT_FRAME.editBox, 0)
+end
+
+StaticPopupDialogs["AHDB_Popup"] = {
+  text = L["AuctionDB, run %s. %s"],
+  button1 = OKAY,
+  button2 = CANCEL,
+  enterClicksFirstButton = true,
+  whileDead = true,
+  hideOnEscape = 1, -- doesn't help when there is an edit box, real stuff is:
+  EditBoxOnEscapePressed = function(self, _data)
+    local widget = self:GetParent()
+    widget:Hide()
+  end,
+  OnAccept = ADB.OnAccept,
+  OnCancel = function(self, _data)
+    self:Hide()
+  end,
+  EditBoxOnEnterPressed = ADB.OnAccept,
+  timeout = 5
+  --  hasEditBox = true
+}
+
+-- hides and most importantly clears temp key binds
+function ADB:HideDoItButton()
+  if ADB.doItButton then
+    ADB:Debug("Hiding button")
+    ClearOverrideBindings(ADB.doItButton)
+    ADB.doItButton:Hide()
+  end
+end
+
+function ADB:Execute(cmd, msg)
+  if ADB.doItButton and ADB.doItButton:IsVisible() and ADB.doItButton.cmd == cmd then
+    ADB:Debug("Same cmd " .. cmd .. " for button already visible, ignoring")
+    return
+  end
+  local txt = cmd
+  if msg then
+    txt = cmd .. " : " .. msg
+  end
+  ADB:PrintDefault(L["AHDB: click the button, or hit space or enter to "] .. txt)
+  ADB:DoItButton(cmd, msg)
+  -- StaticPopup_Show("AHDB_Popup", cmd, msg or "", cmd)
+end
 
 -- define ADB:AfterSavedVars() for post saved var loaded processing
 
@@ -80,6 +172,7 @@ local additionalEventHandlers = {
     ADB:Debug("OnPlayerEnteringWorld " .. ADB:Dump(...))
     ADB:CreateOptionsPanel()
     ADB:SetupMenu()
+    ADB:Execute("/tar " .. L["auctioneer"], L["Target the Auctioneer"])
   end,
 
   DISPLAY_SIZE_CHANGED = function(_self)
@@ -93,13 +186,68 @@ local additionalEventHandlers = {
     if ADB.mmb then
       ADB:SetupMenu() -- buffer with the one above?
     end
-  end
+  end,
+
+  AUCTION_HOUSE_SHOW = function(_self)
+    if ADB.ahShown then
+      return -- remove duplicate events
+    end
+    ADB.ahShown = true
+    ADB:MaybeStartScan()
+  end,
+
+  AUCTION_HOUSE_CLOSED = function(_self)
+    if ADB.ahShown then -- drop dup events
+      ADB.ahShown = nil
+      ADB:PrintDefault("AH closed")
+      ADB:HideDoItButton()
+    end
+  end,
+
+  PLAYER_ENTER_COMBAT = function(_self)
+    ADB:HideDoItButton()
+  end,
 
 }
 
 ADB:RegisterEventHandlers(additionalEventHandlers)
 
 --
+function ADB.Ticker() -- dot as it's ticker function
+  ADB:Debug("Periodic ticker - scan possible: %", ADB:AHfullScanPossible())
+  if ADB:AHfullScanPossible() then
+    ADB:MaybeStartScan()
+  end
+end
+
+ADB.tickerInterval = 12 -- do not make this too frequent! 1 min is plenty for a 1 scan/15 mins allowed anyway
+ADB.ticker = C_Timer.NewTicker(ADB.tickerInterval, ADB.Ticker)
+--
+
+function ADB:MaybeStartScan()
+  if not ADB:AHfullScanPossible() then
+    ADB:Warning("Can't do a full scan at this point, try later...")
+    return
+  end
+  if not ADB.autoScan then
+    ADB:Execute("/ahdb scan", "Ready to start a full scan now!")
+    return
+  end
+  if not ADB.ahShown then
+    ADB:PrintDefault("Can't start AH scan, not at AH")
+    return
+  end
+  ADB:PrintDefault("Will start full scan in % seconds unless cancelled", ADB.autoScanDelay)
+  ADB:AHSaveAll()
+end
+
+function ADB:AHendOfScanCB()
+  if ADB.autoSave then
+    ADB:Warning("Auto save is on, will reload now")
+    -- C_UI.Reload()
+    ADB:Execute("/reload")
+  end
+end
 
 function ADB:Help(msg)
   ADB:PrintDefault("AuctionDB: " .. msg .. "\n" .. "/ahdb config -- open addon config\n" ..

@@ -9,6 +9,10 @@ globals = {
     "geterrorhandler",
     "C_Timer",
     "GameTooltip",
+    "C_UI",
+    "UIParent",
+    "ClearOverrideBindings",
+    "SetOverrideBindingClick",
 }
 max_line_length = 132
 ignore = {
