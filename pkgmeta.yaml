@@ -9,6 +9,7 @@ ignore:
     - MoLib/luaformat.cfg
     - MoLib/README.md
     - MoLib/tests
+    - locale/genlocale.sh
 
 externals:
     MoLib:

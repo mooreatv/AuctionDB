@@ -13,3 +13,5 @@ MoLib/MoLibDB.lua
 MoLib/Realms.lua
 MoLib/MoLibAH.lua
 AuctionDB.lua
+locale/locale.xml
+
