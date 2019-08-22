@@ -7,9 +7,13 @@ echo "Creating $FILES"
 for fn in $FILES; do
     l=${fn%%.*}
     echo "Working on $fn ($l)"
-    echo "-- Generated file, do not edit." > $fn
-    echo >> $fn
-    echo "if (GetLocale() ~= '$l') then return end" >> $fn
-    echo >> $fn
-    echo "--@localization(locale=\"$l\", format=\"lua_additive_table\", same-key-is-true=true, handle-unlocalized=\"ignore\")@" >> $fn
+    cat > $fn <<__END__
+-- Generated file, do not edit.
+local addon, _ns = ...
+
+if (GetLocale() ~= '$l') then return end
+
+local L = _G[addon].L
+--@localization(locale="$l", format="lua_additive_table", same-key-is-true=true, handle-unlocalized="ignore")@
+__END__
 done
