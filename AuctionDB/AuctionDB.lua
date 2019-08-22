@@ -21,10 +21,6 @@ local ADB = _G[addon]
 ADB.L = ADB:GetLocalization()
 local L = ADB.L
 
---- start of test
-@localization(locale="enUS", format="lua_table")@
---- end of test
-
 -- ADB.debug = 9 -- to debug before saved variables are loaded
 
 ADB.slashCmdName = "ahdb"
