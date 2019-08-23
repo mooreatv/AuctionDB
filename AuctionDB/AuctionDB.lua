@@ -92,7 +92,7 @@ function ADB:DoItButton(cmd, msg)
     b:SetSize(64, 64)
     b:SetPoint("TOP", 0, -10)
     b:SetAlpha(.8)
-    local t = b:CreateTexture(nil, "LOW")
+    local t = b:CreateTexture(nil, "ARTWORK")
     t:SetTexture("Interface/Addons/AuctionDB/AuctionDB256.blp")
     t:SetAllPoints()
     local outline = b:CreateTexture(nil, "BACKGROUND")
@@ -130,7 +130,7 @@ function ADB:DoItButton(cmd, msg)
   b.tooltipText = ttip1 .. (msg or cmd) .. ttip2
   b:SetAttribute("macrotext", cmd)
   local iwtKey1 = GetBindingKey("INTERRACTTARGET")
-  for _, key in next, {"ENTER", "SPACE", "RETURN",  iwtKey1 or "."} do
+  for _, key in next, {"ENTER", "SPACE", "RETURN", iwtKey1 or "."} do
     SetOverrideBindingClick(b, true, key, ADB.doItButtonName)
   end
   b:Show()
@@ -231,7 +231,12 @@ function ADB:MaybeStartScan()
     ADB:PrintDefault("Can't start AH scan, not at AH")
     return
   end
-  ADB:PrintDefault("Will start full scan in % seconds unless cancelled", ADB.autoScanDelay)
+  if IsShiftKeyDown() then
+    ADB:Warning(L["Shift key is down so we're not starting a scan."])
+    ADB:Execute("/ahdb scan", L["Start a full manual scan now"])
+    return
+  end
+  ADB:PrintDefault(L["Starting full scan (hold shift next time to prevent it or turn off auto scan)"])
   ADB:AHSaveAll()
 end
 
@@ -319,9 +324,13 @@ function ADB:CreateOptionsPanel()
   p:addText(L["These options let you control the behavior of AuctionDB"] .. " " .. ADB.manifestVersion ..
               " @project-abbreviated-hash@"):Place()
 
-  local autoScan = p:addCheckBox(L["Auto Scan"], L["Automatically scan the AH whenever possible"]):Place(4, 30)
+  local autoScan = p:addCheckBox(L["Auto Scan"],
+                                 L["Automatically scan the AH whenever possible, unless the |cFF99E5FFShift|r key is held"])
+                     :Place(4, 30)
+
   local scanDelay = p:addSlider(L["Auto scan delay"], L["How long to wait for cancellation before scan start"], 2, 10,
                                 1, L["2 sec"], L["10 sec"]):Place(16, 14) -- need more vspace
+
   local autoSave = p:addCheckBox(L["Auto Save/Reload"],
                                  L["Automatically prompts for /reload in order to save the DataBase at the end of the scan"])
                      :Place(4, 30)

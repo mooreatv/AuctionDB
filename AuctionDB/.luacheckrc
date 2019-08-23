@@ -13,6 +13,8 @@ globals = {
     "UIParent",
     "ClearOverrideBindings",
     "SetOverrideBindingClick",
+    "GetBindingKey",
+    "IsShiftKeyDown",
 }
 max_line_length = 132
 ignore = {

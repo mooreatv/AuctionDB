@@ -11,7 +11,7 @@ As you might know the Blizzard APIs to query the AH from the web (like The Under
 
 AuctionDB shows a (moveable) button to take the next step (target the auctioneer, start scan, save,...)
 
-If you configured it to do so, each time you open the auction house (if available and unless you hold shift or cancel the scan), AHDB will take a full snapshot of your auction house and record it in your saved variables under the realm, faction and timestamp
+If you configured it to do so, each time you open the auction house (if available and unless you the hold shift key), AHDB will take a full snapshot of your auction house and record it in your saved variables under the realm, faction and timestamp
 
 You will be able to later query that DB even when not at the AH
 
