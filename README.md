@@ -1,7 +1,7 @@
 # Auction House DataBase
-Auction House DataBase, records DB history and allows offline queries, for classic and more.
+Auction House DataBase (AHDB for short), records DB history and allows offline queries, for classic and more.
 
-This Open Source addon (AHDB for short) is mostly to capture the evolution of the WoW classic economy from empty to mature.
+This Open Source addon is mostly to capture the evolution of the WoW classic economy from empty to mature.
 
 We have a unique chance to record that history and that's what this addon attempts to accomplish
 
@@ -17,7 +17,8 @@ You will be able to later query that DB even when not at the AH
 
 ## More information
 
-Get the binary release using curse/twitch client or on wowinterface
+Get the binary release using [curseforge](https://www.curseforge.com/wow/addons/auction-house-database)/twitch
+client or on wowinterface
 
 The source of the addon resides on https://github.com/mooreatv/AuctionDB
 (and the MoLib library at https://github.com/mooreatv/MoLib)

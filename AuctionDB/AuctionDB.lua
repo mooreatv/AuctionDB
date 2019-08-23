@@ -78,23 +78,43 @@ ADB.doItButtonName = "AHDB_doItButton"
 function ADB:DoItButton(cmd, msg)
   local b = ADB.doItButton
   local ttip1 = "|cFFF2D80CAuction House DataBase|r: " ..
-                  L["Action Button!\n\n|cFF99E5FFLeft|r click (or hit space/return) to:"] .. "\n\n      "
+                  L["Action Button!\n\n|cFF99E5FFLeft|r click (or hit space/return/iwt) to:"] .. "\n\n      "
   local ttip2 = "\n\n" .. L["Drag to move this button."]
   if not b then
     b = CreateFrame("Button", ADB.doItButtonName, UIParent, "InsecureActionButtonTemplate")
     ADB.doItButton = b
     b.name = "AHDBactionButton"
-    local inset = CreateFrame("Frame", nil, b, "InsetFrameTemplate")
-    inset:SetAllPoints()
-    inset:SetIgnoreParentAlpha(true)
-    b:SetFrameLevel(inset:GetFrameLevel() + 1)
+    -- local inset = CreateFrame("Frame", nil, b, "InsetFrameTemplate")
+    -- inset:SetAllPoints()
+    -- inset:SetIgnoreParentAlpha(true)
+    -- b:SetFrameLevel(inset:GetFrameLevel() + 1)
     b:SetAttribute("type", "macro")
     b:SetSize(64, 64)
     b:SetPoint("TOP", 0, -10)
-    b:SetAlpha(.9)
-    local t = b:CreateTexture(nil, "BACKGROUND")
-    t:SetTexture("Interface/Addons/AuctionDB/AuctionDB.blp")
+    b:SetAlpha(.8)
+    local t = b:CreateTexture(nil, "LOW")
+    t:SetTexture("Interface/Addons/AuctionDB/AuctionDB256.blp")
     t:SetAllPoints()
+    local outline = b:CreateTexture(nil, "BACKGROUND")
+    outline:SetTexture("Interface/Addons/AuctionDB/AuctionDB256glow.blp")
+    outline:SetAllPoints()
+    outline:SetAlpha(.1)
+    local glow = b:CreateTexture(nil, "BACKGROUND")
+    glow:SetTexture("Interface/Addons/AuctionDB/AuctionDB256glow.blp")
+    -- glow:SetVertexColor(0.3,0.3,1) -- blueish glow
+    glow:SetPoint("CENTER", 0, 0)
+    glow:SetSize(68, 68)
+    glow:SetBlendMode("ADD")
+    glow:SetAlpha(0) -- start with no change
+    glow:SetIgnoreParentAlpha(true)
+    local ag = glow:CreateAnimationGroup()
+    b.animationGroup = ag
+    local anim = ag:CreateAnimation("Alpha")
+    anim:SetFromAlpha(0)
+    anim:SetToAlpha(0.4)
+    ag:SetLooping("BOUNCE")
+    anim:SetDuration(2)
+    ag:Play()
     b:SetScript("OnEnter", function()
       ADB:ShowToolTip(b, "ANCHOR_RIGHT")
     end)
@@ -109,7 +129,8 @@ function ADB:DoItButton(cmd, msg)
   b.cmd = cmd
   b.tooltipText = ttip1 .. (msg or cmd) .. ttip2
   b:SetAttribute("macrotext", cmd)
-  for _, key in next, {"ENTER", "SPACE", "RETURN"} do
+  local iwtKey1 = GetBindingKey("INTERRACTTARGET")
+  for _, key in next, {"ENTER", "SPACE", "RETURN",  iwtKey1 or "."} do
     SetOverrideBindingClick(b, true, key, ADB.doItButtonName)
   end
   b:Show()
@@ -131,9 +152,9 @@ function ADB:Execute(cmd, msg)
   end
   local txt = cmd
   if msg then
-    txt = cmd .. " : " .. msg
+    txt = msg .. " (" .. cmd .. ")"
   end
-  ADB:PrintDefault(L["AHDB: click the button, or hit space or enter to "] .. txt)
+  ADB:PrintDefault(L["AHDB: click the button, or hit space or enter or IWT to "] .. txt)
   ADB:DoItButton(cmd, msg)
 end
 
@@ -203,7 +224,7 @@ function ADB:MaybeStartScan()
     return
   end
   if not ADB.autoScan then
-    ADB:Execute("/ahdb scan", "Ready to start a full scan now!")
+    ADB:Execute("/ahdb scan", L["Start a full scan now!"])
     return
   end
   if not ADB.ahShown then
@@ -217,7 +238,7 @@ end
 function ADB:AHendOfScanCB()
   if ADB.autoSave then
     -- C_UI.Reload()
-    ADB:Execute("/reload", L["To Save the scan to SavedVariables"])
+    ADB:Execute("/reload", L["Save the scan data to SavedVariables"])
   end
 end
 

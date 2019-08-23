@@ -4,6 +4,10 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v0.06.00 Aug 23rd 2019
+- Pick up big AH changes in MoLib - https://github.com/mooreatv/MoLib/blob/master/ChangeLog.txt
+- Also bind IWT (so hitting it 3 times starts a scan (target, open, start scan))
+- New transparent, glowing button
 v0.05.00 Aug 22nd 2019
 - The build now includes localization
 - bug fix: use PLAYER_REGEN_DISABLED as the event to hide our button, avoids combat error
