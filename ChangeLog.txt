@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v0.07.01 Aug 24th 2019
+(from MoLib)
+- Fixed bogus realm mismatch warning
 v0.07.00 Aug 23rd 2019
 (from MoLib:)
 - New ItemDB even more compact format 
