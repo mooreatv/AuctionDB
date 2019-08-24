@@ -5,12 +5,17 @@ Coming next:
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
 v0.07.00 Aug 23rd 2019
-- New ItemDB even more compact format (from MoLib)
+(from MoLib:)
+- New ItemDB even more compact format 
+- Scan data also better structure: group by item and seller, 
+  now down to 1.5Mb a scan from 30Mb when I started.
+
 v0.06.00 Aug 23rd 2019
 - Pick up big AH changes in MoLib - https://github.com/mooreatv/MoLib/blob/master/ChangeLog.txt
 - Also bind IWT (so hitting it 3 times starts a scan (target, open, start scan))
 - New transparent, glowing button
 - Added shift key to prevent auto scan feature (auto scan delay is noop atm)
+
 v0.05.00 Aug 22nd 2019
 - The build now includes localization
 - bug fix: use PLAYER_REGEN_DISABLED as the event to hide our button, avoids combat error
