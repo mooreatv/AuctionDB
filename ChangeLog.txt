@@ -4,6 +4,8 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v0.07.00 Aug 23rd 2019
+- New ItemDB even more compact format (from MoLib)
 v0.06.00 Aug 23rd 2019
 - Pick up big AH changes in MoLib - https://github.com/mooreatv/MoLib/blob/master/ChangeLog.txt
 - Also bind IWT (so hitting it 3 times starts a scan (target, open, start scan))
