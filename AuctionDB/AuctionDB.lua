@@ -193,7 +193,7 @@ local additionalEventHandlers = {
   AUCTION_HOUSE_CLOSED = function(_self)
     if ADB.ahShown then -- drop dup events
       ADB.ahShown = nil
-      ADB:PrintDefault("AH closed")
+      ADB:PrintDefault("AuctionDB " .. L["AH closed"])
       ADB:HideDoItButton()
     end
   end,
@@ -214,13 +214,13 @@ function ADB.Ticker() -- dot as it's ticker function
   end
 end
 
-ADB.tickerInterval = 90 -- do not make this too frequent! 1 min 30s is plenty for a 1 scan/15 mins allowed anyway
+ADB.tickerInterval = 120 -- do not make this too frequent! 2 minutes is plenty for a 1 scan/15 mins allowed anyway
 ADB.ticker = C_Timer.NewTicker(ADB.tickerInterval, ADB.Ticker)
 --
 
 function ADB:MaybeStartScan()
   if not ADB:AHfullScanPossible() then
-    ADB:Warning("Can't do a full scan at this point, try later...")
+    ADB:Warning(L["Can't do a full scan at this point, try later..."])
     return
   end
   if not ADB.autoScan then
@@ -228,7 +228,7 @@ function ADB:MaybeStartScan()
     return
   end
   if not ADB.ahShown then
-    ADB:PrintDefault("Can't start AH scan, not at AH")
+    ADB:PrintDefault(L["Can't start AH scan, not at AH"])
     return
   end
   if IsShiftKeyDown() then
