@@ -4,6 +4,8 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v0.09.01 Aug 26th 2019
+- Pick up MoLib fix with typo in classic code path that couldn't be tested until now (!) sorry!
 v0.09.00 Aug 26th 2019
 - Rebranded from short name "AuctionDB" to "AHDB" to avoid confusion with TSM's internal module of the same name
 - Now include current bid in scan DB v6 and deserialization on load.
