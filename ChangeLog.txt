@@ -1,8 +1,14 @@
-ChangeLog for AuctionDB by MooreaTv (moorea@ymail.com)
+ChangeLog for Auction House DataBase (AHDB) by MooreaTv (moorea@ymail.com)
 
 Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
+
+v0.09.00 Aug 26th 2019
+- Rebranded from short name "AuctionDB" to "AHDB" to avoid confusion with TSM's internal module of the same name
+- Now include current bid in scan DB v6 and deserialization on load.
+- (for now) Requires Better Vendor Price to display AH results information through tooltip
+- Classic is today !
 
 v0.08.00 Aug 25th 2019
 - Pickup from MoLib: itemdb version 4 (20% shorter), and a bug fix for suffixid

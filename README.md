@@ -9,9 +9,9 @@ As you might know the Blizzard APIs to query the AH from the web (like The Under
 
 ## What does it do?
 
-AuctionDB shows a (moveable) button to take the next step (target the auctioneer, start scan, save,...)
+AHDB shows a (moveable) button to take the next step (target the auctioneer, start scan, save,...)
 
-If you configured it to do so, each time you open the auction house (if available and unless you the hold shift key), AHDB will take a full snapshot of your auction house and record it in your saved variables under the realm, faction and timestamp
+If you configured it to do so, each time you open the auction house (if available and unless you the hold shift key), AHDB takes a full snapshot of your auction house and record it in your saved variables under the realm, faction and timestamp
 
 You will be able to later query that DB even when not at the AH
 
@@ -24,3 +24,5 @@ The source of the addon resides on https://github.com/mooreatv/AuctionDB
 (and the MoLib library at https://github.com/mooreatv/MoLib)
 
 Releases detail/changes are on https://github.com/mooreatv/AuctionDB/releases
+
+Note: AHDB is unrelated to TSM's internal module AuctionDB (though we hope to see an integration soon so TSM can use our awesome scan data)

@@ -1,5 +1,5 @@
 --[[
-   AuctionDB by MooreaTV moorea@ymail.com (c) 2019 All rights reserved
+   Auction House DataBase (AHDB) by MooreaTV moorea@ymail.com (c) 2019 All rights reserved
    Licensed under LGPLv3 - No Warranty
    (contact the author if you need a different license)
 
@@ -26,12 +26,13 @@ local L = ADB.L
 ADB.slashCmdName = "ahdb"
 ADB.addonHash = "@project-abbreviated-hash@"
 ADB.savedVarName = "AuctionDBSaved"
+ADB.name ="AHDB"
 -- ADB.author = "MooreaTv" -- override default author
 
 ADB.autoScan = false
 ADB.autoScanDelay = 10
-ADB.autoSave = true
-ADB.showNewItems = 10 -- show first 100 new items seen
+ADB.autoSave = false
+ADB.showNewItems = 20 -- show first 100 new items seen
 
 -- TODO: move most of this to MoLib
 
@@ -48,7 +49,7 @@ function ADB:SetupMenu()
     if button == "RightButton" then
       ADB.Slash("config")
     else
-      ADB:PrintDefault("AuctionDB: manual scan requested...")
+      ADB:PrintDefault("AHDB: manual scan requested...")
       ADB.Slash("scan")
     end
   end)
@@ -158,7 +159,11 @@ function ADB:Execute(cmd, msg)
   ADB:DoItButton(cmd, msg)
 end
 
--- define ADB:AfterSavedVars() for post saved var loaded processing
+function ADB:AfterSavedVars()
+  if self.savedVar and self.savedVar.ah then
+    ADB:AHRestoreData()
+  end
+end
 
 local additionalEventHandlers = {
 
@@ -193,7 +198,7 @@ local additionalEventHandlers = {
   AUCTION_HOUSE_CLOSED = function(_self)
     if ADB.ahShown then -- drop dup events
       ADB.ahShown = nil
-      ADB:PrintDefault("AuctionDB " .. L["AH closed"])
+      ADB:PrintDefault("AHDB " .. L["AH closed"])
       ADB:HideDoItButton()
     end
   end,
@@ -248,7 +253,7 @@ function ADB:AHendOfScanCB()
 end
 
 function ADB:Help(msg)
-  ADB:PrintDefault("AuctionDB: " .. msg .. "\n" .. "/ahdb config -- open addon config\n" ..
+  ADB:PrintDefault("AHDB: " .. msg .. "\n" .. "/ahdb config -- open addon config\n" ..
                      "/ahdb scan -- manual full scan\n" .. "/ahdb bug -- report a bug\n" ..
                      "/ahdb debug on/off/level -- for debugging on at level or off.\n" ..
                      "/ahdb version -- shows addon version")
@@ -268,12 +273,12 @@ function ADB.Slash(arg) -- can't be a : because used directly as slash command
   end
   if cmd == "b" then
     local subText = L["Please submit on discord or https://|cFF99E5FFbit.ly/ahbug|r or email"]
-    ADB:PrintDefault(L["AuctionDB bug report open: "] .. subText)
+    ADB:PrintDefault(L["AHDB bug report open: "] .. subText)
     -- base molib will add version and date/timne
     ADB:BugReport(subText, "@project-abbreviated-hash@\n\n" .. L["Bug report from slash command"])
   elseif cmd == "v" then
     -- version
-    ADB:PrintDefault("AuctionDB " .. ADB.manifestVersion ..
+    ADB:PrintDefault("AHDB " .. ADB.manifestVersion ..
                        " (@project-abbreviated-hash@) by MooreaTv (moorea@ymail.com)")
   elseif cmd == "s" then
     -- scan
@@ -294,7 +299,7 @@ function ADB.Slash(arg) -- can't be a : because used directly as slash command
     else
       ADB:SetSaved("debug", tonumber(rest))
     end
-    ADB:PrintDefault("AuctionDB debug now %", ADB.debug)
+    ADB:PrintDefault("AHDB debug now %", ADB.debug)
   else
     ADB:Help('unknown command "' .. arg .. '", usage:')
   end
@@ -317,11 +322,11 @@ function ADB:CreateOptionsPanel()
   end
   ADB:Debug("Creating Options Panel")
 
-  local p = ADB:Frame("AuctionDB")
+  local p = ADB:Frame("AHDB")
   ADB.optionsPanel = p
-  p:addText(L["AuctionDB options"], "GameFontNormalLarge"):Place()
+  p:addText(L["AHDB options"], "GameFontNormalLarge"):Place()
   p:addText(L["Auction House DataBase: records DB history, offline queries and more."]):Place()
-  p:addText(L["These options let you control the behavior of AuctionDB"] .. " " .. ADB.manifestVersion ..
+  p:addText(L["These options let you control the behavior of AHDB"] .. " " .. ADB.manifestVersion ..
               " @project-abbreviated-hash@"):Place()
 
   local autoScan = p:addCheckBox(L["Auto Scan"],
@@ -383,11 +388,11 @@ function ADB:CreateOptionsPanel()
     if sliderVal == 0 then
       sliderVal = nil
       if ADB.debug then
-        ADB:PrintDefault("AuctionDB: options setting debug level changed from % to OFF.", ADB.debug)
+        ADB:PrintDefault("AHDB: options setting debug level changed from % to OFF.", ADB.debug)
       end
     else
       if ADB.debug ~= sliderVal then
-        ADB:PrintDefault("AuctionDB: options setting debug level changed from % to %.", ADB.debug, sliderVal)
+        ADB:PrintDefault("AHDB: options setting debug level changed from % to %.", ADB.debug, sliderVal)
       end
     end
     ADB:SetSaved("debug", sliderVal)
@@ -398,7 +403,7 @@ function ADB:CreateOptionsPanel()
   end
 
   function p:cancel()
-    ADB:PrintDefault("AuctionDB: options screen cancelled, not making any changes.")
+    ADB:PrintDefault("AHDB: options screen cancelled, not making any changes.")
   end
 
   function p:okay()
@@ -418,9 +423,9 @@ function ADB:CreateOptionsPanel()
 end
 
 -- bindings / localization
-_G.AUCTIONDB = "AuctionDB"
+_G.AUCTIONDB = "AHDB"
 _G.BINDING_HEADER_ADB = L["Auction House DataBase addon key bindings"]
-_G.BINDING_NAME_ADB_SCAN = L["AH Scan"] .. " |cFF99E5FF/ahdb scan|r"
+_G.BINDING_NAME_ADB_SCAN = L["AHDB Scan"] .. " |cFF99E5FF/ahdb scan|r"
 _G.BINDING_NAME_ADB_OPEN = L["AHDB Open"] .. " |cFF99E5FF/ahdb open|r"
 
 -- ADB.debug = 2
