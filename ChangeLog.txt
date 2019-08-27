@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v0.09.02 Aug 26th 2019
+- Pick up another MoLib small fix (round to .1 copper when dividing (avoids 16.6666666 copper), 
+  coding error in 1 of the warnings)
 v0.09.01 Aug 26th 2019
 - Pick up MoLib fix with typo in classic code path that couldn't be tested until now (!) sorry!
 v0.09.00 Aug 26th 2019
