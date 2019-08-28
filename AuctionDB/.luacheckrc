@@ -15,6 +15,7 @@ globals = {
     "SetOverrideBindingClick",
     "GetBindingKey",
     "IsShiftKeyDown",
+    "IsResting",
 }
 max_line_length = 132
 ignore = {

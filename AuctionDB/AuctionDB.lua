@@ -26,13 +26,14 @@ local L = ADB.L
 ADB.slashCmdName = "ahdb"
 ADB.addonHash = "@project-abbreviated-hash@"
 ADB.savedVarName = "AuctionDBSaved"
-ADB.name ="AHDB"
+ADB.name = "AHDB"
 -- ADB.author = "MooreaTv" -- override default author
 
 ADB.autoScan = false
 ADB.autoScanDelay = 10
 ADB.autoSave = false
 ADB.showNewItems = 20 -- show first 100 new items seen
+ADB.targetAuctioneer = true
 
 -- TODO: move most of this to MoLib
 
@@ -79,7 +80,7 @@ ADB.doItButtonName = "AHDB_doItButton"
 function ADB:DoItButton(cmd, msg)
   local b = ADB.doItButton
   local ttip1 = "|cFFF2D80CAuction House DataBase|r: " ..
-                  L["Action Button!\n\n|cFF99E5FFLeft|r click (or hit space/return/iwt) to:"] .. "\n\n      "
+                  L["Action Button!\n\n|cFF99E5FFLeft|r click (or hit space, return or IWT key) to:"] .. "\n\n      "
   local ttip2 = "\n\n" .. L["Drag to move this button."]
   if not b then
     b = CreateFrame("Button", ADB.doItButtonName, UIParent, "InsecureActionButtonTemplate")
@@ -171,7 +172,9 @@ local additionalEventHandlers = {
     ADB:Debug("OnPlayerEnteringWorld " .. ADB:Dump(...))
     ADB:CreateOptionsPanel()
     ADB:SetupMenu()
-    ADB:Execute("/tar " .. L["auctioneer"], L["Target the Auctioneer"])
+    if ADB.targetAuctioneer then
+      ADB:Execute("/tar " .. L["auctioneer"], L["Target the Auctioneer"])
+    end
   end,
 
   DISPLAY_SIZE_CHANGED = function(_self)
@@ -187,27 +190,30 @@ local additionalEventHandlers = {
     end
   end,
 
-  AUCTION_HOUSE_SHOW = function(_self)
-    if ADB.ahShown then
-      return -- remove duplicate events
-    end
-    ADB.ahShown = true
-    ADB:MaybeStartScan()
-  end,
-
-  AUCTION_HOUSE_CLOSED = function(_self)
-    if ADB.ahShown then -- drop dup events
-      ADB.ahShown = nil
-      ADB:PrintDefault("AHDB " .. L["AH closed"])
-      ADB:HideDoItButton()
-    end
-  end,
-
   PLAYER_REGEN_DISABLED = function(_self)
     ADB:HideDoItButton()
-  end
+  end,
 
+  PLAYER_UPDATE_RESTING = function(_self)
+    if IsResting() then
+      if ADB:AHfullScanPossible() then
+        ADB:MaybeStartScan()
+      end
+    else
+      ADB:HideDoItButton()
+    end
+  end
 }
+
+function ADB:AHOpenCB()
+  ADB:Debug("AHDB AH open cb")
+  ADB:MaybeStartScan()
+end
+
+function ADB:AHCloseCB()
+  ADB:PrintDefault("AHDB " .. L["AH closed"])
+  ADB:HideDoItButton()
+end
 
 ADB:RegisterEventHandlers(additionalEventHandlers)
 
@@ -278,8 +284,7 @@ function ADB.Slash(arg) -- can't be a : because used directly as slash command
     ADB:BugReport(subText, "@project-abbreviated-hash@\n\n" .. L["Bug report from slash command"])
   elseif cmd == "v" then
     -- version
-    ADB:PrintDefault("AHDB " .. ADB.manifestVersion ..
-                       " (@project-abbreviated-hash@) by MooreaTv (moorea@ymail.com)")
+    ADB:PrintDefault("AHDB " .. ADB.manifestVersion .. " (@project-abbreviated-hash@) by MooreaTv (moorea@ymail.com)")
   elseif cmd == "s" then
     -- scan
     ADB:AHSaveAll()
@@ -340,6 +345,10 @@ function ADB:CreateOptionsPanel()
                                  L["Automatically prompts for /reload in order to save the DataBase at the end of the scan"])
                      :Place(4, 30)
 
+  local doTarget = p:addCheckBox(L["Target Auctioneer at load time"],
+                                 L["Automatically prompts for targetting the auctioneer at /reload or login time."])
+                     :Place(4, 30)
+
   local newItems = p:addSlider(L["Show new items"], L["Shows never seen before items found in scan up to these many"],
                                0, 100, 5, L["None"]):Place(16, 30) -- need more vspace
 
@@ -374,6 +383,7 @@ function ADB:CreateOptionsPanel()
     autoScan:SetChecked(ADB.autoScan)
     scanDelay:SetValue(ADB.autoScanDelay)
     autoSave:SetChecked(ADB.autoSave)
+    doTarget:SetChecked(ADB.targetAuctioneer)
     newItems:SetValue(ADB.showNewItems)
   end
 
@@ -399,6 +409,7 @@ function ADB:CreateOptionsPanel()
     ADB:SetSaved("autoScan", autoScan:GetChecked())
     ADB:SetSaved("autoScanDelay", scanDelay:GetValue())
     ADB:SetSaved("autoSave", autoSave:GetChecked())
+    ADB:SetSaved("targetAuctioneer", doTarget:GetChecked())
     ADB:SetSaved("showNewItems", newItems:GetValue())
   end
 
