@@ -6,6 +6,7 @@ Coming next:
 
 v0.10.00 Aug 27th 2019
 - Don't show the big pulsating button unless IsResting() (ie in city/inns) - Fixing Issue #12
+- Don't bind key for full scan unless at AH
 - Option to turn off the /tar auctioneer binding
 - Now works even if another addon (like aux-addon) hides the standard UI (moved ah open/close events to MoLib)
 - Also from MoLib: Bug fixes on normally shrinking auctions list 

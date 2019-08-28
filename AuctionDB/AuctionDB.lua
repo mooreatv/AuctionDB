@@ -77,7 +77,7 @@ end
 -- Events handling
 ADB.doItButtonName = "AHDB_doItButton"
 
-function ADB:DoItButton(cmd, msg)
+function ADB:DoItButton(cmd, msg, forceBind)
   local b = ADB.doItButton
   local ttip1 = "|cFFF2D80CAuction House DataBase|r: " ..
                   L["Action Button!\n\n|cFF99E5FFLeft|r click (or hit space, return or IWT key) to:"] .. "\n\n      "
@@ -131,9 +131,12 @@ function ADB:DoItButton(cmd, msg)
   b.cmd = cmd
   b.tooltipText = ttip1 .. (msg or cmd) .. ttip2
   b:SetAttribute("macrotext", cmd)
-  local iwtKey1 = GetBindingKey("INTERRACTTARGET")
-  for _, key in next, {"ENTER", "SPACE", "RETURN", iwtKey1 or "."} do
-    SetOverrideBindingClick(b, true, key, ADB.doItButtonName)
+  if forceBind or self.ahShown then
+    local iwtKey1 = GetBindingKey("INTERRACTTARGET")
+    for _, key in next, {"ENTER", "SPACE", "RETURN", iwtKey1 or "."} do
+      SetOverrideBindingClick(b, true, key, ADB.doItButtonName)
+    end
+    b.keyBound = true
   end
   b:Show()
 end
@@ -143,21 +146,26 @@ function ADB:HideDoItButton()
   if ADB.doItButton then
     ADB:Debug("Hiding button")
     ClearOverrideBindings(ADB.doItButton)
+    ADB.doItButton.keyBound = false
     ADB.doItButton:Hide()
   end
 end
 
-function ADB:Execute(cmd, msg)
-  if ADB.doItButton and ADB.doItButton:IsVisible() and ADB.doItButton.cmd == cmd then
-    ADB:Debug("Same cmd " .. cmd .. " for button already visible, ignoring")
+function ADB:Execute(cmd, msg, forceBind)
+  if ADB.doItButton and ADB.doItButton:IsVisible() and ADB.doItButton.cmd == cmd and ADB.doItButton.keyBound then
+    ADB:Debug("Same cmd " .. cmd .. " for button already visible and key bound, ignoring")
     return
   end
   local txt = cmd
   if msg then
     txt = msg .. " (" .. cmd .. ")"
   end
-  ADB:PrintDefault(L["AHDB: click the button, or hit space or enter or IWT to "] .. txt)
-  ADB:DoItButton(cmd, msg)
+  local extra = ""
+  if not forceBind and not self.ahShown then
+    extra = L["When at the AH: "]
+  end
+  ADB:PrintDefault("AHDB: " .. extra .. L["click the button, or hit space or enter or IWT to "] .. txt)
+  ADB:DoItButton(cmd, msg, forceBind)
 end
 
 function ADB:AfterSavedVars()
@@ -173,7 +181,9 @@ local additionalEventHandlers = {
     ADB:CreateOptionsPanel()
     ADB:SetupMenu()
     if ADB.targetAuctioneer then
-      ADB:Execute("/tar " .. L["auctioneer"], L["Target the Auctioneer"])
+      ADB:Execute("/tar " .. L["auctioneer"], L["Target the Auctioneer"], true) -- true == do bind even not at AH
+    elseif ADB:AHfullScanPossible() then
+      ADB:MaybeStartScan()
     end
   end,
 
@@ -254,7 +264,7 @@ end
 function ADB:AHendOfScanCB()
   if ADB.autoSave then
     -- C_UI.Reload()
-    ADB:Execute("/reload", L["Save the scan data to SavedVariables"])
+    ADB:Execute("/reload", L["Save the scan data to SavedVariables"], true)
   end
 end
 
