@@ -4,9 +4,15 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
-v0.10.01 Aug 27th 2019
+v0.11.00 Aug 27th 2019
+- No more pause/hang on classic at the end of the first scan!
+- Unlike in BfA which doesn't mind despite 100x more items, for classic we needed to not restore 
+  the item update event immediately, yet keep the UI functional even if you search after 
+  and hit enter in Name editbox for instance (still haven't found how to hide previous results
+  if you manual search first and then do a full scan but it's only cosmetically wrong in that case)
 - Fix the inital /tar -> /scan button binding
 - Detect "in combat" overlapping with start/end of resting to avoid addon blocked errors
+
 v0.10.00 Aug 27th 2019
 - Don't show the big pulsating button unless IsResting() (ie in city/inns) - Fixing Issue #12
 - Don't bind key for full scan unless at AH
