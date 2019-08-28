@@ -230,6 +230,7 @@ local additionalEventHandlers = {
     if ADB.currentlyResting == nowResting then
       return -- no actual changes (happens in inns sometimes (!))
     end
+    ADB.currentlyResting = nowResting
     if nowResting and not ADB.inCombat then
       if ADB:AHfullScanPossible() then
         ADB:MaybeStartScan("resting")
@@ -237,7 +238,6 @@ local additionalEventHandlers = {
     else
       ADB:HideDoItButton()
     end
-    ADB.currentlyResting = nowResting
   end
 }
 

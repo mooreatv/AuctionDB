@@ -4,6 +4,8 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v0.11.03 Aug 28th 2019
+- Fix bogus "Can't scan outside of cities..."
 v0.11.02 Aug 28th 2019
 - Software is hard... Really fixed #12 now. Should not show button unless rested and should
   not spam the chat periodically either
