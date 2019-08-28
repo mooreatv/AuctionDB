@@ -137,6 +137,11 @@ function ADB:DoItButton(cmd, msg, forceBind)
       SetOverrideBindingClick(b, true, key, ADB.doItButtonName)
     end
     b.keyBound = true
+  else
+    if not ADB.inComnbat then
+      ClearOverrideBindings(ADB.doItButton)
+    end
+    b.keyBound = false
   end
   b:Show()
 end
@@ -183,8 +188,10 @@ local additionalEventHandlers = {
     if ADB.targetAuctioneer then
       ADB:Execute("/tar " .. L["auctioneer"], L["Target the Auctioneer"], true) -- true == do bind even not at AH
     elseif ADB:AHfullScanPossible() then
-      ADB:MaybeStartScan()
+      ADB:MaybeStartScan("enter world")
     end
+    ADB.currentlyResting = IsResting()
+    ADB:Debug("Initial resting is %", ADB.currentlyResting)
   end,
 
   DISPLAY_SIZE_CHANGED = function(_self)
@@ -201,13 +208,25 @@ local additionalEventHandlers = {
   end,
 
   PLAYER_REGEN_DISABLED = function(_self)
+    ADB:Debug("Combat on")
     ADB:HideDoItButton()
+    ADB.inCombat = true
+  end,
+
+  PLAYER_REGEN_ENABLED = function(_self)
+    ADB:Debug("Combat off")
+    ADB.inCombat = false
   end,
 
   PLAYER_UPDATE_RESTING = function(_self)
-    if IsResting() then
+    local nowResting = IsResting()
+    ADB:Debug("Change in resting (or initial) resting is % to %", ADB.currentlyResting, nowResting)
+    if ADB.currentlyResting == nowResting then
+      return -- no actual changes (happens in inns sometimes (!))
+    end
+    if nowResting and not ADB.inCombat then
       if ADB:AHfullScanPossible() then
-        ADB:MaybeStartScan()
+        ADB:MaybeStartScan("resting")
       end
     else
       ADB:HideDoItButton()
@@ -217,7 +236,7 @@ local additionalEventHandlers = {
 
 function ADB:AHOpenCB()
   ADB:Debug("AHDB AH open cb")
-  ADB:MaybeStartScan()
+  ADB:MaybeStartScan("ah now open")
 end
 
 function ADB:AHCloseCB()
@@ -231,7 +250,7 @@ ADB:RegisterEventHandlers(additionalEventHandlers)
 function ADB.Ticker() -- dot as it's ticker function
   ADB:Debug("Periodic ticker - scan possible: %", ADB:AHfullScanPossible())
   if ADB:AHfullScanPossible() then
-    ADB:MaybeStartScan()
+    ADB:MaybeStartScan("ticker")
   end
 end
 
@@ -239,7 +258,12 @@ ADB.tickerInterval = 120 -- do not make this too frequent! 2 minutes is plenty f
 ADB.ticker = C_Timer.NewTicker(ADB.tickerInterval, ADB.Ticker)
 --
 
-function ADB:MaybeStartScan()
+function ADB:MaybeStartScan(msg)
+  self:Debug(2, "Called MaybeStartScan bcause " .. (msg or ""))
+  if ADB.inCombat then
+    ADB:Warning(L["Try again when not in combat..."])
+    return
+  end
   if not ADB:AHfullScanPossible() then
     ADB:Warning(L["Can't do a full scan at this point, try later..."])
     return

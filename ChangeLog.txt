@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v0.10.01 Aug 27th 2019
+- Fix the inital /tar -> /scan button binding
+- Detect "in combat" overlapping with start/end of resting to avoid addon blocked errors
 v0.10.00 Aug 27th 2019
 - Don't show the big pulsating button unless IsResting() (ie in city/inns) - Fixing Issue #12
 - Don't bind key for full scan unless at AH
@@ -11,6 +14,7 @@ v0.10.00 Aug 27th 2019
 - Now works even if another addon (like aux-addon) hides the standard UI (moved ah open/close events to MoLib)
 - Also from MoLib: Bug fixes on normally shrinking auctions list 
   (in classic unlike BfA it seems the list refreshes faster despite having fewer auctions)
+
 v0.09.02 Aug 26th 2019
 - Pick up another MoLib small fix (round to .1 copper when dividing (avoids 16.6666666 copper), 
   coding error in 1 of the warnings)
