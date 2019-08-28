@@ -35,13 +35,16 @@ ADB.autoSave = false
 ADB.showNewItems = 20 -- show first 100 new items seen
 ADB.targetAuctioneer = true
 
+ADB.savePosSuffix = "buttonPos" -- button pos is button.name .. savePosSuffix
+
 -- TODO: move most of this to MoLib
 
 function ADB:SetupMenu()
   ADB:WipeFrame(ADB.mmb)
   ADB.minimapButtonAngle = 0
-  local b = ADB:minimapButton(ADB.buttonPos)
-  b.name = "AHDBminimapButton"
+  local name = "AHDBminimapButton"
+  local b = ADB:minimapButton(ADB[name .. ADB.savePosSuffix])
+  b.name = name
   local t = b:CreateTexture(nil, "ARTWORK")
   t:SetSize(19, 19)
   t:SetTexture("Interface/Addons/AuctionDB/AuctionDB.blp")
@@ -71,7 +74,7 @@ function ADB:SetupMenu()
 end
 
 function ADB.SavePositionCB(b, pos, _scale)
-  ADB:SetSaved(b.name .. "buttonPos", pos)
+  ADB:SetSaved(b.name .. ADB.savePosSuffix, pos)
 end
 
 -- Events handling
@@ -92,7 +95,13 @@ function ADB:DoItButton(cmd, msg, forceBind)
     -- b:SetFrameLevel(inset:GetFrameLevel() + 1)
     b:SetAttribute("type", "macro")
     b:SetSize(64, 64)
-    b:SetPoint("TOP", 0, -10)
+    local pos = ADB[b.name .. ADB.savePosSuffix]
+    if pos then
+      local pt, xOff, yOff = unpack(pos)
+      b:SetPoint("TOPLEFT", nil, pt, xOff, yOff) -- dragging gives position from nil (screen)
+    else
+      b:SetPoint("TOP", 0, -10)
+    end
     b:SetAlpha(.8)
     local t = b:CreateTexture(nil, "ARTWORK")
     t:SetTexture("Interface/Addons/AuctionDB/AuctionDB256.blp")
@@ -398,7 +407,7 @@ function ADB:CreateOptionsPanel()
   p:addButton(L["Bug Report"], L["Get Information to submit a bug."] .. "\n|cFF99E5FF/ahdb bug|r", "bug"):Place(4, 20)
 
   p:addButton(L["Reset minimap button"], L["Resets the minimap button to back to initial default location"], function()
-    ADB:SetSaved("buttonPos", nil)
+    ADB:SetSaved("AHDBminimapButtonbuttonPos", nil)
     ADB:SetupMenu()
   end):Place(4, 20)
 
