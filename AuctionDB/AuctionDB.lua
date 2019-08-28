@@ -157,8 +157,11 @@ function ADB:HideDoItButton()
 end
 
 function ADB:Execute(cmd, msg, forceBind)
-  if ADB.doItButton and ADB.doItButton:IsVisible() and ADB.doItButton.cmd == cmd and ADB.doItButton.keyBound then
-    ADB:Debug("Same cmd " .. cmd .. " for button already visible and key bound, ignoring")
+  -- don't respam
+  if ADB.doItButton and ADB.doItButton:IsVisible() and ADB.doItButton.cmd == cmd and
+    (ADB.doItButton.keyBound or not self.ahShown) then
+    ADB:Debug("Same cmd " .. cmd .. " for button already visible and key bound % or not at ah %, ignoring",
+              ADB.doItButton.keyBound, self.ahShown)
     return
   end
   local txt = cmd
@@ -234,6 +237,7 @@ local additionalEventHandlers = {
     else
       ADB:HideDoItButton()
     end
+    ADB.currentlyResting = nowResting
   end
 }
 
@@ -252,7 +256,7 @@ ADB:RegisterEventHandlers(additionalEventHandlers)
 --
 function ADB.Ticker() -- dot as it's ticker function
   ADB:Debug("Periodic ticker - scan possible: %", ADB:AHfullScanPossible())
-  if ADB:AHfullScanPossible() then
+  if ADB:AHfullScanPossible() and ADB.currentlyResting then
     ADB:MaybeStartScan("ticker")
   end
 end
@@ -267,16 +271,16 @@ function ADB:MaybeStartScan(msg)
     ADB:Warning(L["Try again when not in combat..."])
     return
   end
+  if not ADB.currentlyResting then
+    ADB:Warning(L["Can't scan outside of cities..."])
+    return
+  end
   if not ADB:AHfullScanPossible() then
     ADB:Warning(L["Can't do a full scan at this point, try later..."])
     return
   end
-  if not ADB.autoScan then
+  if not ADB.autoScan or not ADB.ahShown then
     ADB:Execute("/ahdb scan", L["Start a full scan now!"])
-    return
-  end
-  if not ADB.ahShown then
-    ADB:PrintDefault(L["Can't start AH scan, not at AH"])
     return
   end
   if IsShiftKeyDown() then

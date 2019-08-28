@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v0.11.02 Aug 28th 2019
+- Software is hard... Really fixed #12 now. Should not show button unless rested and should
+  not spam the chat periodically either
 v0.11.01 Aug 28th 2019
 - Opsa... was still starting with button shown irrespective of resting state (!) - sorry - fixed now!
 v0.11.00 Aug 27th 2019
