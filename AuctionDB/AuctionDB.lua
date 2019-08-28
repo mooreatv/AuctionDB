@@ -185,13 +185,16 @@ local additionalEventHandlers = {
     ADB:Debug("OnPlayerEnteringWorld " .. ADB:Dump(...))
     ADB:CreateOptionsPanel()
     ADB:SetupMenu()
+    ADB.currentlyResting = IsResting()
+    ADB:Debug("Initial resting is %", ADB.currentlyResting)
+    if not ADB.currentlyResting then
+      return
+    end
     if ADB.targetAuctioneer then
       ADB:Execute("/tar " .. L["auctioneer"], L["Target the Auctioneer"], true) -- true == do bind even not at AH
     elseif ADB:AHfullScanPossible() then
-      ADB:MaybeStartScan("enter world")
+      ADB:MaybeStartScan("enter world, resting")
     end
-    ADB.currentlyResting = IsResting()
-    ADB:Debug("Initial resting is %", ADB.currentlyResting)
   end,
 
   DISPLAY_SIZE_CHANGED = function(_self)
