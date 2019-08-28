@@ -9,7 +9,7 @@ v0.11.04 Aug 28th 2019
 v0.11.03 Aug 28th 2019
 - Fix bogus "Can't scan outside of cities..."
 v0.11.02 Aug 28th 2019
-- Software is hard... Really fixed #12 now. Should not show button unless rested and should
+- Software is hard... Really fixed #12, #13, #14 now. Should not show button unless rested and should
   not spam the chat periodically either
 v0.11.01 Aug 28th 2019
 - Opsa... was still starting with button shown irrespective of resting state (!) - sorry - fixed now!
