@@ -252,7 +252,7 @@ local additionalEventHandlers = {
 
 function ADB:AHOpenCB()
   ADB:Debug("AHDB AH open cb")
-  ADB:MaybeStartScan("ah now open")
+  ADB:MaybeStartScan("ah now open", true)
 end
 
 function ADB:AHCloseCB()
@@ -274,8 +274,9 @@ ADB.tickerInterval = 120 -- do not make this too frequent! 2 minutes is plenty f
 ADB.ticker = C_Timer.NewTicker(ADB.tickerInterval, ADB.Ticker)
 --
 
-function ADB:MaybeStartScan(msg)
-  self:Debug(2, "Called MaybeStartScan bcause " .. (msg or ""))
+function ADB:MaybeStartScan(msg, nowarning)
+  msg = msg or ""
+  self:Debug(2, "Called MaybeStartScan bcause " .. msg)
   if ADB.inCombat then
     ADB:Warning(L["Try again when not in combat..."])
     return
@@ -285,7 +286,11 @@ function ADB:MaybeStartScan(msg)
     return
   end
   if not ADB:AHfullScanPossible() then
-    ADB:Warning(L["Can't do a full scan at this point, try later..."])
+    if nowarning then
+      ADB:Debug("can't do full scan, and no warning set - msg = " .. msg)
+    else
+      ADB:Warning(L["Can't do a full scan at this point, try later..."])
+    end
     return
   end
   if not ADB.autoScan or not ADB.ahShown then
