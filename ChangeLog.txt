@@ -5,7 +5,7 @@ Coming next:
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
 v0.11.05 Aug 29th 2019
-- 
+- Don't print warning about scan not doable at every AH open (Fixed #15) 
 v0.11.04 Aug 28th 2019
 - Fixed minimap button and big button drag to move forgetting location on reload (thx Bayart for the report!)
 v0.11.03 Aug 28th 2019
