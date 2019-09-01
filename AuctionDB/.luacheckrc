@@ -16,6 +16,8 @@ globals = {
     "GetBindingKey",
     "IsShiftKeyDown",
     "IsResting",
+    "GetItemInfo",
+    "GetCoinTextureString",
 }
 max_line_length = 132
 ignore = {

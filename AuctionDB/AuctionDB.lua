@@ -165,6 +165,57 @@ function ADB:HideDoItButton()
   end
 end
 
+-- Thresholds - TODO: add ui for thresholds
+ADB.buyoutProfit = 48 -- 49 copper
+ADB.bidProfit = 88 -- 89 copper
+
+function ADB:checkAuction(timeLeft, itemCount, minBid, buyoutPrice, bidAmount, minIncrement, ourBid, itemLink,
+                          auctionIndex)
+  local _, _, _, _, _, _, _, _, _, _, vendorUnitPrice = GetItemInfo(itemLink)
+  if vendorUnitPrice <= 0 then
+    ADB:Debug(4, "no vendor unit price for % : %", itemLink, vendorUnitPrice)
+    return -- not vendorable
+  end
+  if buyoutPrice > 0 then
+    local vendorProfit = vendorUnitPrice * itemCount - buyoutPrice
+    if vendorProfit > ADB.buyoutProfit then
+      ADB:Debug("vendor buyout: % buyoutProfit=% vup=% buyout=% itemCount=% isOurBid=%", itemLink, vendorProfit,
+                vendorUnitPrice, buyoutPrice, itemCount, ourBid)
+      if not ourBid then
+        ADB:PrintDefault("AHDB: |cFF00FF00Buyout|r Auction " .. itemLink .. "x% for " ..
+                           GetCoinTextureString(buyoutPrice) .. " < vendor by " .. GetCoinTextureString(vendorProfit),
+                         itemCount)
+      end
+    end
+  end
+  if timeLeft ~= 1 then
+    return -- don't look at bid for longer auctions
+  end
+  -- bid check, includes increment
+  local bid = minBid
+  if bidAmount > 0 then
+    bid = bidAmount + minIncrement
+  end
+  local vendorProfit = vendorUnitPrice * itemCount - bid
+  if vendorProfit > ADB.bidProfit then
+    ADB:Debug("vendor bid: % bidProfit=% vup=% bid=% itemCount=% isOurBid=%", itemLink, vendorProfit, vendorUnitPrice,
+              bid, itemCount, ourBid)
+    if not ourBid then
+      ADB:PrintDefault("AHDB: |cFFFF0000Short|r Auction " .. itemLink .. "x% bid " .. GetCoinTextureString(bid) ..
+                         " < vendor by " .. GetCoinTextureString(vendorProfit), itemCount)
+    end
+  end
+end
+
+-- original version
+local auctionEntry = ADB.auctionEntry
+
+-- vendor check "hook"
+function ADB:auctionEntry(...)
+  ADB:checkAuction(...)
+  return auctionEntry(self, ...)
+end
+
 function ADB:Execute(cmd, msg, forceBind)
   -- don't respam
   if ADB.doItButton and ADB.doItButton:IsVisible() and ADB.doItButton.cmd == cmd and

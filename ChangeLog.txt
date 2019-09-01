@@ -4,6 +4,8 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v0.12.00 Sept 1st 2019
+- wip below vendor auction alerts/info
 v0.11.05 Aug 29th 2019
 - Don't print warning about scan not doable at every AH open (Fixed #15) 
 v0.11.04 Aug 28th 2019
