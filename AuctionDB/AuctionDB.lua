@@ -165,15 +165,20 @@ function ADB:HideDoItButton()
   end
 end
 
+function ADB:ScanFrame()
+
+end
 -- Thresholds - TODO: add ui for thresholds
-ADB.buyoutProfit = 48 -- 49 copper
-ADB.bidProfit = 88 -- 89 copper
+ADB.buyoutProfit = 48 -- 19 copper
+ADB.bidProfit = 78 -- 69 copper
+
+-- ADB.sendTo = "OFFICER"
 
 function ADB:checkAuction(timeLeft, itemCount, minBid, buyoutPrice, bidAmount, minIncrement, ourBid, itemLink,
-                          auctionIndex)
+                          _auctionIndex)
   local _, _, _, _, _, _, _, _, _, _, vendorUnitPrice = GetItemInfo(itemLink)
-  if vendorUnitPrice <= 0 then
-    ADB:Debug(4, "no vendor unit price for % : %", itemLink, vendorUnitPrice)
+  if not vendorUnitPrice or vendorUnitPrice <= 0 then
+    ADB:Debug(4, "no vendor unit price (yet?) for % : %", itemLink, vendorUnitPrice)
     return -- not vendorable
   end
   if buyoutPrice > 0 then
@@ -185,6 +190,12 @@ function ADB:checkAuction(timeLeft, itemCount, minBid, buyoutPrice, bidAmount, m
         ADB:PrintDefault("AHDB: |cFF00FF00Buyout|r Auction " .. itemLink .. "x% for " ..
                            GetCoinTextureString(buyoutPrice) .. " < vendor by " .. GetCoinTextureString(vendorProfit),
                          itemCount)
+        -- Send to sendTo
+        if ADB.sendTo then
+          local msg = ADB:format("AHDB: Buyout Auction " .. itemLink .. "x% for " .. GetCoinText(buyoutPrice) ..
+                                   " < vendor by " .. GetCoinText(vendorProfit), itemCount)
+          SendChatMessage(msg, ADB.sendTo)
+        end
       end
     end
   end
@@ -203,6 +214,13 @@ function ADB:checkAuction(timeLeft, itemCount, minBid, buyoutPrice, bidAmount, m
     if not ourBid then
       ADB:PrintDefault("AHDB: |cFFFF0000Short|r Auction " .. itemLink .. "x% bid " .. GetCoinTextureString(bid) ..
                          " < vendor by " .. GetCoinTextureString(vendorProfit), itemCount)
+      -- Send to sendTo  -- GetCoinText
+      if ADB.sendTo then
+        local tmsg = ADB:format(
+                       "AHDB: Short Auction " .. itemLink .. "x% bid " .. GetCoinText(bid) .. " < vendor by " ..
+                         GetCoinText(vendorProfit), itemCount)
+        SendChatMessage(tmsg, ADB.sendTo)
+      end
     end
   end
 end

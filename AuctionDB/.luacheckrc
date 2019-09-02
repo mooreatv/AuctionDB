@@ -18,6 +18,8 @@ globals = {
     "IsResting",
     "GetItemInfo",
     "GetCoinTextureString",
+    "SendChatMessage",
+    "GetCoinText",
 }
 max_line_length = 132
 ignore = {
