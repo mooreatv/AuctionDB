@@ -32,7 +32,7 @@ ADB.name = "AHDB"
 ADB.autoScan = false
 ADB.autoScanDelay = 10
 ADB.autoSave = false
-ADB.showNewItems = 20 -- show first 100 new items seen
+ADB.showNewItems = 10 -- show first 10 new items seen
 ADB.targetAuctioneer = true
 
 ADB.savePosSuffix = "buttonPos" -- button pos is button.name .. savePosSuffix
@@ -230,7 +230,10 @@ local auctionEntry = ADB.auctionEntry
 
 -- vendor check "hook"
 function ADB:auctionEntry(...)
-  ADB:checkAuction(...)
+  if ADB.devMode then
+    -- this isn't ready yet (causes hangs with large auctions)
+    ADB:checkAuction(...)
+  end
   return auctionEntry(self, ...)
 end
 

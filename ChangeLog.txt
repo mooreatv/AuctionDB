@@ -5,7 +5,8 @@ Coming next:
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
 v0.12.00 Sept 1st 2019
-- wip below vendor auction alerts/info
+- Fix for #18: Raw data was fine but AH tooltip and TSM pricing info could miss the min for the first auction
+  found if it had multiple items
 v0.11.05 Aug 29th 2019
 - Don't print warning about scan not doable at every AH open (Fixed #15) 
 v0.11.04 Aug 28th 2019
