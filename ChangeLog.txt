@@ -4,7 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
-v0.12.01 Sept 5th 2019
+v0.12.03 Sept 9th 2019
+- Adding option to hide the big button per request (Fixes #16)
+v0.12.01,.02 Sept 5th 2019
 - Re tag to get curse to pickup the dependency
 v0.12.00 Sept 5th 2019
 - Fix for #18: Raw data was fine but AH tooltip and TSM pricing info could miss the min for the first auction

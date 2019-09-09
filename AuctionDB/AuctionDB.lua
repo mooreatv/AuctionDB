@@ -34,6 +34,7 @@ ADB.autoScanDelay = 10
 ADB.autoSave = false
 ADB.showNewItems = 10 -- show first 10 new items seen
 ADB.targetAuctioneer = true
+ADB.showBigButton = true
 
 ADB.savePosSuffix = "buttonPos" -- button pos is button.name .. savePosSuffix
 
@@ -152,7 +153,11 @@ function ADB:DoItButton(cmd, msg, forceBind)
     end
     b.keyBound = false
   end
-  b:Show()
+  if ADB.showBigButton then
+    b:Show()
+  else
+    b:Hide()
+  end
 end
 
 -- hides and most importantly clears temp key binds
@@ -476,6 +481,10 @@ function ADB:CreateOptionsPanel()
                                  L["Automatically prompts for targetting the auctioneer at /reload or login time."])
                      :Place(4, 30)
 
+  local showBigButton = p:addCheckBox(L["Show the big action button"],
+                                      L["Shows, if checked, the big button prompting you to go do a scan; hides if unchecked."])
+                          :Place(4, 30)
+
   local newItems = p:addSlider(L["Show new items"], L["Shows never seen before items found in scan up to these many"],
                                0, 100, 5, L["None"]):Place(16, 30) -- need more vspace
 
@@ -512,6 +521,7 @@ function ADB:CreateOptionsPanel()
     autoSave:SetChecked(ADB.autoSave)
     doTarget:SetChecked(ADB.targetAuctioneer)
     newItems:SetValue(ADB.showNewItems)
+    showBigButton:SetChecked(ADB.showBigButton)
   end
 
   function p:HandleOk()
@@ -538,6 +548,15 @@ function ADB:CreateOptionsPanel()
     ADB:SetSaved("autoSave", autoSave:GetChecked())
     ADB:SetSaved("targetAuctioneer", doTarget:GetChecked())
     ADB:SetSaved("showNewItems", newItems:GetValue())
+    local show = showBigButton:GetChecked()
+    ADB:SetSaved("showBigButton", show)
+    if show then
+      if ADB.doItButton then
+        ADB.doItButton:Show()
+      end
+    else
+      ADB:HideDoItButton()
+    end
   end
 
   function p:cancel()
