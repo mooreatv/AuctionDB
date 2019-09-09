@@ -44,12 +44,7 @@ function ADB:SetupMenu()
   ADB:WipeFrame(ADB.mmb)
   ADB.minimapButtonAngle = 0
   local name = "AHDBminimapButton"
-  local b = ADB:minimapButton(ADB[name .. ADB.savePosSuffix])
-  b.name = name
-  local t = b:CreateTexture(nil, "ARTWORK")
-  t:SetSize(19, 19)
-  t:SetTexture("Interface/Addons/AuctionDB/AuctionDB.blp")
-  t:SetPoint("TOPLEFT", 7, -6)
+  local b = ADB:minimapButton(ADB[name .. ADB.savePosSuffix], name, "Interface/Addons/AuctionDB/AuctionDB.blp")
   b:SetScript("OnClick", function(_w, button, _down)
     if button == "RightButton" then
       ADB.Slash("config")
@@ -70,7 +65,7 @@ function ADB:SetupMenu()
     ADB.inButton = false
     ADB:Debug("Hide tool tip...")
   end)
-  ADB:MakeMoveable(b, ADB.SavePositionCB)
+  ADB:MakeMoveable(b, ADB.SavePositionCB) -- TODO move inside minimapButton to avoid isldbi nonsense
   ADB.mmb = b
 end
 
@@ -468,22 +463,26 @@ function ADB:CreateOptionsPanel()
 
   local autoScan = p:addCheckBox(L["Auto Scan"],
                                  L["Automatically scan the AH whenever possible, unless the |cFF99E5FFShift|r key is held"])
-                     :Place(4, 30)
+                     :Place(4, 20)
 
   local scanDelay = p:addSlider(L["Auto scan delay"], L["How long to wait for cancellation before scan start"], 2, 10,
-                                1, L["2 sec"], L["10 sec"]):Place(16, 14) -- need more vspace
+                                1, L["2 sec"], L["10 sec"]):PlaceRight(100, 4)
 
   local autoSave = p:addCheckBox(L["Auto Save/Reload"],
                                  L["Automatically prompts for /reload in order to save the DataBase at the end of the scan"])
-                     :Place(4, 30)
+                     :Place(4, 20)
 
   local doTarget = p:addCheckBox(L["Target Auctioneer at load time"],
                                  L["Automatically prompts for targetting the auctioneer at /reload or login time."])
-                     :Place(4, 30)
+                     :Place(4, 20)
 
   local showBigButton = p:addCheckBox(L["Show the big action button"],
                                       L["Shows, if checked, the big button prompting you to go do a scan; hides if unchecked."])
-                          :Place(4, 30)
+                          :Place(4, 20)
+
+  local allowLDBI = p:addCheckBox(L["Use SexyMap/LDBIcon if available"],
+                                  L["When checked and if LibDBIcon is installed, use it for minimap icon, otherwise use our code."])
+                      :Place(4, 20)
 
   local newItems = p:addSlider(L["Show new items"], L["Shows never seen before items found in scan up to these many"],
                                0, 100, 5, L["None"]):Place(16, 30) -- need more vspace
@@ -522,6 +521,7 @@ function ADB:CreateOptionsPanel()
     doTarget:SetChecked(ADB.targetAuctioneer)
     newItems:SetValue(ADB.showNewItems)
     showBigButton:SetChecked(ADB.showBigButton)
+    allowLDBI:SetChecked(ADB.allowLDBI)
   end
 
   function p:HandleOk()
@@ -548,6 +548,9 @@ function ADB:CreateOptionsPanel()
     ADB:SetSaved("autoSave", autoSave:GetChecked())
     ADB:SetSaved("targetAuctioneer", doTarget:GetChecked())
     ADB:SetSaved("showNewItems", newItems:GetValue())
+    if ADB:SetSaved("allowLDBI", allowLDBI:GetChecked()) == 1 then
+      ADB:SetupMenu()
+    end
     local show = showBigButton:GetChecked()
     ADB:SetSaved("showBigButton", show)
     if show then
