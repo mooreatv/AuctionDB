@@ -4,8 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
-v0.13.00 Sept 9th 2019
+v0.14.00 Sept 9th 2019
 - Added support for LibDBIcon / SexyMap through MoLib changes (Fixes #20)
+- Added support to disable all AHDB temporary keybindings (Fixes #21)
 v0.12.03 Sept 9th 2019
 - Adding option to hide the big button per request (Fixes #16)
 v0.12.01,.02 Sept 5th 2019

@@ -35,6 +35,7 @@ ADB.autoSave = false
 ADB.showNewItems = 10 -- show first 10 new items seen
 ADB.targetAuctioneer = true
 ADB.showBigButton = true
+ADB.disableKeybinds = false
 
 ADB.savePosSuffix = "buttonPos" -- button pos is button.name .. savePosSuffix
 
@@ -136,7 +137,7 @@ function ADB:DoItButton(cmd, msg, forceBind)
   b.cmd = cmd
   b.tooltipText = ttip1 .. (msg or cmd) .. ttip2
   b:SetAttribute("macrotext", cmd)
-  if forceBind or self.ahShown then
+  if (forceBind or self.ahShown) and not ADB.disableKeybinds then
     local iwtKey1 = GetBindingKey("INTERRACTTARGET")
     for _, key in next, {"ENTER", "SPACE", "RETURN", iwtKey1 or "."} do
       SetOverrideBindingClick(b, true, key, ADB.doItButtonName)
@@ -480,6 +481,10 @@ function ADB:CreateOptionsPanel()
                                       L["Shows, if checked, the big button prompting you to go do a scan; hides if unchecked."])
                           :Place(4, 20)
 
+  local disableKeybinds = p:addCheckBox(L["Disable key bindings"],
+                                        L["Disable the automatic temporary keybinding when a scan is possible."]):Place(
+                            4, 20)
+
   local allowLDBI = p:addCheckBox(L["Use SexyMap/LDBIcon if available"],
                                   L["When checked and if LibDBIcon is installed, use it for minimap icon, otherwise use our code."])
                       :Place(4, 20)
@@ -522,6 +527,7 @@ function ADB:CreateOptionsPanel()
     newItems:SetValue(ADB.showNewItems)
     showBigButton:SetChecked(ADB.showBigButton)
     allowLDBI:SetChecked(ADB.allowLDBI)
+    disableKeybinds:SetChecked(ADB.disableKeybinds)
   end
 
   function p:HandleOk()
@@ -548,6 +554,7 @@ function ADB:CreateOptionsPanel()
     ADB:SetSaved("autoSave", autoSave:GetChecked())
     ADB:SetSaved("targetAuctioneer", doTarget:GetChecked())
     ADB:SetSaved("showNewItems", newItems:GetValue())
+    ADB:SetSaved("disableKeybinds", disableKeybinds:GetChecked())
     if ADB:SetSaved("allowLDBI", allowLDBI:GetChecked()) == 1 then
       ADB:SetupMenu()
     end
