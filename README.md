@@ -25,4 +25,6 @@ The source of the addon resides on https://github.com/mooreatv/AuctionDB
 
 Releases detail/changes are on https://github.com/mooreatv/AuctionDB/releases
 
+The data can be processed using https://github.com/mooreatv/AHDBapp
+
 Note: AHDB is unrelated to TSM's internal module AuctionDB (though we hope to see an integration soon so TSM can use our awesome scan data)
