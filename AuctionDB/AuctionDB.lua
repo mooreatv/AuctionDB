@@ -21,6 +21,8 @@ local ADB = _G[addon]
 ADB.L = ADB:GetLocalization()
 local L = ADB.L
 
+ADB.debugLocalization = false -- TODO: remove this line when dealing with localization
+
 -- ADB.debug = 9 -- to debug before saved variables are loaded
 
 ADB.slashCmdName = "ahdb"
@@ -36,6 +38,7 @@ ADB.showNewItems = 10 -- show first 10 new items seen
 ADB.targetAuctioneer = true
 ADB.showBigButton = true
 ADB.disableKeybinds = false
+ADB.showText = true
 
 ADB.savePosSuffix = "buttonPos" -- button pos is button.name .. savePosSuffix
 
@@ -254,7 +257,11 @@ function ADB:Execute(cmd, msg, forceBind)
   if not forceBind and not self.ahShown then
     extra = L["When at the AH: "]
   end
-  ADB:PrintDefault("AHDB: " .. extra .. L["click the button, or hit space or enter or IWT to "] .. txt)
+  if ADB.showText then
+    ADB:PrintDefault("AHDB: " .. extra .. L["click the button, or hit space or enter or IWT to "] .. txt)
+  else
+    ADB:Debug("Not showing text %", txt)
+  end
   ADB:DoItButton(cmd, msg, forceBind)
 end
 
@@ -367,7 +374,7 @@ function ADB:MaybeStartScan(msg, nowarning)
     return
   end
   if not ADB.autoScan or not ADB.ahShown then
-    ADB:Execute("/ahdb scan", L["Start a full scan now!"])
+    ADB:Execute("/ahdb scan", L["Start a full scan"])
     return
   end
   if IsShiftKeyDown() then
@@ -485,6 +492,10 @@ function ADB:CreateOptionsPanel()
                                         L["Disable the automatic temporary keybinding when a scan is possible."]):Place(
                             4, 20)
 
+  local showText = p:addCheckBox(L["Show text about scan possible and commands"],
+                                 L["Shows or disable the text indicating a scan is possible and which command will be executed when clicking."])
+                     :Place(4, 20)
+
   local allowLDBI = p:addCheckBox(L["Use SexyMap/LDBIcon if available"],
                                   L["When checked and if LibDBIcon is installed, use it for minimap icon, otherwise use our code."])
                       :Place(4, 20)
@@ -528,6 +539,7 @@ function ADB:CreateOptionsPanel()
     showBigButton:SetChecked(ADB.showBigButton)
     allowLDBI:SetChecked(ADB.allowLDBI)
     disableKeybinds:SetChecked(ADB.disableKeybinds)
+    showText:SetChecked(ADB.showText)
   end
 
   function p:HandleOk()
@@ -555,6 +567,7 @@ function ADB:CreateOptionsPanel()
     ADB:SetSaved("targetAuctioneer", doTarget:GetChecked())
     ADB:SetSaved("showNewItems", newItems:GetValue())
     ADB:SetSaved("disableKeybinds", disableKeybinds:GetChecked())
+    ADB:SetSaved("showText", showText:GetChecked())
     if ADB:SetSaved("allowLDBI", allowLDBI:GetChecked()) == 1 then
       ADB:SetupMenu()
     end

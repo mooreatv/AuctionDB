@@ -1,4 +1,4 @@
-## Interface: 80200
+## Interface: 11302
 ## Title: Auction House DataBase (AHDB)
 ## Notes: Auction House DataBase, records DB history and offline queries, for classic and more (|cFF99E5FF/ahdb|r)
 ## Author: MooreaTV moorea@ymail.com
@@ -6,8 +6,7 @@
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
 ## SavedVariables: AuctionDBSaved
-## Dependencies: BetterVendorPrice
-## OptionalDeps: SexyMap
+## OptionalDeps: BetterVendorPrice, SexyMap
 ## Globe: check-classic
 MoLib/MoLib.lua
 MoLib/MoLibUI.lua
