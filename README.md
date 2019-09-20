@@ -27,4 +27,4 @@ Releases detail/changes are on https://github.com/mooreatv/AuctionDB/releases
 
 The data can be processed using https://github.com/mooreatv/AHDBapp
 
-Note: AHDB is unrelated to TSM's internal module AuctionDB (though we hope to see an integration soon so TSM can use our awesome scan data)
+Note: AHDB is unrelated to TSM's internal module AuctionDB (though there is a basic integration and TSM can now use some of our awesome scan data)
