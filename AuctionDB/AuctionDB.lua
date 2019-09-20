@@ -493,8 +493,8 @@ function ADB:CreateOptionsPanel()
                             4, 20)
 
   local showText = p:addCheckBox(L["Show text about scan possible and commands"],
-                                 L["Shows or disable the text indicating a scan is possible and which command will be executed when clicking."])
-                     :Place(4, 20)
+                                 L["Shows or disable the text indicating a scan is possible" ..
+                                   " and which command will be executed when clicking."]):Place(4, 20)
 
   local allowLDBI = p:addCheckBox(L["Use SexyMap/LDBIcon if available"],
                                   L["When checked and if LibDBIcon is installed, use it for minimap icon, otherwise use our code."])

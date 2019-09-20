@@ -4,7 +4,7 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
-v1.00.00 Sept 11th 2019
+v1.00.01 Sept 11th 2019
 - Stable enough for 1.0!
 - Make the dependency on BVP optional because curseforge/twitch is broken
 - Trying to flip around retail and classic tags and default to see if it helps
