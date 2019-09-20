@@ -11,7 +11,7 @@ CLASSIC_TOC_V=11302
 git fetch && git pull
 
 TAG=`git describe --tags`
-if [[ ! $TAG == *"-bfa"* ]]; then
+if [[ $TAG == *"-bfa"* ]]; then
     echo "Error: the latest tag is already -bfa: $TAG"
     exit 1
 fi
