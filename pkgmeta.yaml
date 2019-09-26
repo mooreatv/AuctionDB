@@ -20,9 +20,6 @@ externals:
 
 manual-changelog: ChangeLog.txt
 
-required-dependencies:
-    - better-vendor-price
-
 move-folders:
   AuctionDB/AuctionDB: AuctionDB
 
