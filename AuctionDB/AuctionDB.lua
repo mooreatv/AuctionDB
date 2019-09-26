@@ -474,11 +474,16 @@ function ADB:CreateOptionsPanel()
                      :Place(4, 20)
 
   local scanDelay = p:addSlider(L["Auto scan delay"], L["How long to wait for cancellation before scan start"], 2, 10,
-                                1, L["2 sec"], L["10 sec"]):PlaceRight(100, 4)
+                                1, L["2 sec"], L["10 sec"]):PlaceRight(60, 4)
+  scanDelay:DoDisable() -- not used/working yet
 
   local autoSave = p:addCheckBox(L["Auto Save/Reload"],
                                  L["Automatically prompts for /reload in order to save the DataBase at the end of the scan"])
-                     :Place(4, 20)
+                     :PlaceRight(60, -4)
+
+  local waitForSellers = p:addCheckBox(L["Wait for Seller information"],
+                                       L["Slower initial scan per session but more complete information with all sellers when checked"])
+                           :Place(4, 20)
 
   local doTarget = p:addCheckBox(L["Target Auctioneer at load time"],
                                  L["Automatically prompts for targetting the auctioneer at /reload or login time."])
@@ -489,16 +494,12 @@ function ADB:CreateOptionsPanel()
                           :Place(4, 20)
 
   local disableKeybinds = p:addCheckBox(L["Disable key bindings"],
-                                        L["Disable the automatic temporary keybinding when a scan is possible."]):Place(
-                            4, 20)
+                                        L["Disable the automatic temporary keybinding when a scan is possible."])
+                            :PlaceRight(40)
 
   local showText = p:addCheckBox(L["Show text about scan possible and commands"],
                                  L["Shows or disable the text indicating a scan is possible" ..
                                    " and which command will be executed when clicking."]):Place(4, 20)
-
-  local allowLDBI = p:addCheckBox(L["Use SexyMap/LDBIcon if available"],
-                                  L["When checked and if LibDBIcon is installed, use it for minimap icon, otherwise use our code."])
-                      :Place(4, 20)
 
   local newItems = p:addSlider(L["Show new items"], L["Shows never seen before items found in scan up to these many"],
                                0, 100, 5, L["None"]):Place(16, 30) -- need more vspace
@@ -506,6 +507,10 @@ function ADB:CreateOptionsPanel()
   p:addText(L["Development, troubleshooting and advanced options:"]):Place(40, 20)
 
   p:addButton(L["Bug Report"], L["Get Information to submit a bug."] .. "\n|cFF99E5FF/ahdb bug|r", "bug"):Place(4, 20)
+
+  local allowLDBI = p:addCheckBox(L["Use SexyMap/LDBIcon if available"],
+                                  L["When checked and if LibDBIcon is installed, use it for minimap icon, otherwise use our code."])
+                      :Place(4, 20)
 
   p:addButton(L["Reset minimap button"], L["Resets the minimap button to back to initial default location"], function()
     ADB:SetSaved("AHDBminimapButtonbuttonPos", nil)
@@ -540,6 +545,7 @@ function ADB:CreateOptionsPanel()
     allowLDBI:SetChecked(ADB.allowLDBI)
     disableKeybinds:SetChecked(ADB.disableKeybinds)
     showText:SetChecked(ADB.showText)
+    waitForSellers:SetChecked(ADB.ahWaitForSellers)
   end
 
   function p:HandleOk()
@@ -568,6 +574,7 @@ function ADB:CreateOptionsPanel()
     ADB:SetSaved("showNewItems", newItems:GetValue())
     ADB:SetSaved("disableKeybinds", disableKeybinds:GetChecked())
     ADB:SetSaved("showText", showText:GetChecked())
+    ADB:SetSaved("ahWaitForSellers", waitForSellers:GetChecked())
     if ADB:SetSaved("allowLDBI", allowLDBI:GetChecked()) == 1 then
       ADB:SetupMenu()
     end

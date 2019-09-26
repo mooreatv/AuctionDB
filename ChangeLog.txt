@@ -4,6 +4,10 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v1.01.00 Sept 25th 2019
+- Now (optionally) waits for seller info (you can turn it off in options for fastest scan)
+  to consider the scan complete - most of the work as usual is in MoLib.
+
 v1.00.01 Sept 11th 2019
 - Stable enough for 1.0!
 - Make the dependency on BVP optional because curseforge/twitch is broken
