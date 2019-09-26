@@ -10,6 +10,9 @@ ignore:
     - MoLib/README.md
     - MoLib/tests
     - locale/genlocale.sh
+    - pkgmeta.yaml
+    - AuctionDB/locale/genlocale.sh
+    - MoLib/pkgmeta.yaml
 
 externals:
     MoLib:
