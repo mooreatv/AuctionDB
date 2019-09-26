@@ -15,7 +15,7 @@ jobs:
         run: |
           sudo apt-get install luarocks
           luarocks install --local luacheck
-          exec /home/runner/.luarocks/bin/luacheck AuctionDB/ --no-color --config ./AuctionDB/.luacheckrc -q
+          exec /home/runner/.luarocks/bin/luacheck AuctionDB/*.lua --no-color --config ./AuctionDB/.luacheckrc -q
       - name: Get the packager
         run: |
           curl -s https://raw.githubusercontent.com/mooreatv/packager/master/release.sh > ./release.sh

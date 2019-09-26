@@ -482,7 +482,7 @@ function ADB:CreateOptionsPanel()
                      :PlaceRight(60, -4)
 
   local waitForSellers = p:addCheckBox(L["Wait for Seller information"],
-                                       L["Slower initial scan per session but more complete information with all sellers when checked"])
+                                       L["Slower initial scan per session but more complete information with all sellers"])
                            :Place(4, 20)
 
   local doTarget = p:addCheckBox(L["Target Auctioneer at load time"],
