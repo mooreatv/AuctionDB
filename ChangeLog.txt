@@ -4,6 +4,10 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
 
+v1.01.03 Sept 30th 2019
+- Fix rounding issue in MoLib's :round() and improved AH info calc
+  fixes https://github.com/mooreatv/BetterVendorPrice/issues/6
+
 v1.01.02 Sept 25th 2019
 - Now (optionally) waits for seller info (you can turn it off in options for fastest scan)
   to consider the scan complete - most of the work as usual is in MoLib.
