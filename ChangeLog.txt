@@ -2,7 +2,7 @@ ChangeLog for Auction House DataBase (AHDB) by MooreaTv (moorea@ymail.com)
 
 Coming next:
 - Your input/suggestions welcome !
-- See open issues for ideas https://github.com/mooreatv/AuctionDB/issues)
+- See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
 v1.01.03 Sept 30th 2019
 - Fix rounding issue in MoLib's :round() and improved AH info calc
