@@ -11,7 +11,7 @@
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
 ## SavedVariables: AuctionDBSaved
-## OptionalDeps: BetterVendorPrice, SexyMap
+## OptionalDeps: BetterVendorPrice, SexyMap, ProjectAzilroka
 ## Globe: check-classic
 MoLib/MoLib.lua
 MoLib/MoLibUI.lua
