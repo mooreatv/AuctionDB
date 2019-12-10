@@ -20,6 +20,7 @@ globals = {
     "GetCoinTextureString",
     "SendChatMessage",
     "GetCoinText",
+    "unpack",
 }
 max_line_length = 132
 ignore = {

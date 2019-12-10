@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.02.00 December 10th 2019
+- Updated for Classic 1.13.3
+
 v1.01.04 October 14th 2019
 - Add ProjectAzilroka to optional deps so it can manage our minimap icon.
 - [wip] Pickup/Use latest MoLib scrolling frame (for now just `/run AuctionDB:TableDemo()`)
