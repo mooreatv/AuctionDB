@@ -4,6 +4,10 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.02.01 March 3rd 2020
+- Updated for Classic 1.13.4
+- doesn't yet work with the recent AH revamp of BfA 8.3
+
 v1.02.00 December 10th 2019
 - Updated for Classic 1.13.3
 
