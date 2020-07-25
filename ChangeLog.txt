@@ -7,6 +7,9 @@ Coming next:
 v1.03.00 July 24th 2020
 - Auction Item Database schema v5, now contains itemSellPrice, itemStackCount, itemClassID,
   itemSubClassID, itemRarity, itemMinLevel prefix before the link (MoLib change)
+- The internal item database will enrich automatically with item info as you scan but if you have
+  a large one you want to manually update, do `/ahdb infoscan` a few times (wait a bit and /reload in between)
+- See the matching schema change in https://github.com/mooreatv/AHDBapp
 
 v1.02.02 July 8th 2020
 - Updated for Classic 1.13.5

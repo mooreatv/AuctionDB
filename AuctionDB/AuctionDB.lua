@@ -408,6 +408,36 @@ function ADB:AHendOfScanCB()
   end
 end
 
+function ADB:ItemInfoScan()
+  local idb = self.savedVar[self.itemDBKey]
+  ADB:PrintDefault(L["Scanning item db for item info, starting with % items, % with info"], idb._count_, idb._infoCount_)
+  local count = 0
+  local infoCount = 0
+  for key, link in pairs(idb) do
+    if key:sub(1,1) == "_" then
+      ADB:PrintDefault(L["Meta information key % value %"], key, link)
+    else
+      count = count + 1
+      if ADB:HasItemInfo(link) then
+        infoCount = infoCount + 1
+      else
+        local added
+        idb[key], added = ADB:AddItemInfo(link)
+        infoCount = infoCount + added
+        idb._infoCount_ = idb._infoCount_ + added
+      end
+    end
+  end
+  ADB:PrintDefault(L["Found % total items and % with info"], count, infoCount)
+  if idb._count_ ~= count then
+    ADB:Warning("Mismatch in count % vs %", count, idb._count_)
+  end
+  if idb._infoCount_ ~= infoCount then
+    ADB:Warning("Fixing mismatch in info count % (was %)", infoCount, idb._infoCount_)
+    idb._infoCount_ = infoCount
+  end
+end
+
 function ADB:Help(msg)
   ADB:PrintDefault("AHDB: " .. msg .. "\n" .. "/ahdb config -- open addon config\n" ..
                      "/ahdb scan -- manual full scan\n" .. "/ahdb bug -- report a bug\n" ..
@@ -440,6 +470,8 @@ function ADB.Slash(arg) -- can't be a : because used directly as slash command
     ADB:AHSaveAll()
   elseif ADB:StartsWith(arg, "context") then
     ADB:AHContext()
+  elseif ADB:StartsWith(arg, "infoscan") then
+    ADB:ItemInfoScan()
   elseif cmd == "c" then
     -- Show config panel
     -- InterfaceOptionsList_DisplayPanel(ADB.optionsPanel)
