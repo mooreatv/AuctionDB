@@ -4,6 +4,10 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.03.00 July 24th 2020
+- Auction Item Database schema v5, now contains itemSellPrice, itemStackCount, itemClassID,
+  itemSubClassID, itemRarity, itemMinLevel prefix before the link (MoLib change)
+
 v1.02.02 July 8th 2020
 - Updated for Classic 1.13.5
 - [bfa] doesn't yet work with the recent AH revamp of BfA 8.3
