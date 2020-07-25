@@ -173,17 +173,20 @@ function ADB:ScanFrame()
 
 end
 -- Thresholds - TODO: add ui for thresholds
-ADB.buyoutProfit = 48 -- 19 copper
-ADB.bidProfit = 78 -- 69 copper
+ADB.buyoutProfit = 48 -- 48 copper
+ADB.bidProfit = 78 -- 78 copper
+ADB.lowBid = 10 -- display low bids on items without vendor price
+ADB.lowBidTime = 3 -- only 30,2h,8h for low bids
+ADB.lastLowBid = nil -- avoid spamming for hundreds of same
 
 -- ADB.sendTo = "OFFICER"
 
 function ADB:checkAuction(timeLeft, itemCount, minBid, buyoutPrice, bidAmount, minIncrement, ourBid, itemLink,
                           _auctionIndex)
   local _, _, _, _, _, _, _, _, _, _, vendorUnitPrice = GetItemInfo(itemLink)
-  if not vendorUnitPrice or vendorUnitPrice <= 0 then
-    ADB:Debug(4, "no vendor unit price (yet?) for % : %", itemLink, vendorUnitPrice)
-    return -- not vendorable
+  if not vendorUnitPrice then
+    ADB:Debug(1, "no vendor unit price (yet?) for % : %", itemLink, vendorUnitPrice)
+    return -- no data
   end
   if buyoutPrice > 0 then
     local vendorProfit = vendorUnitPrice * itemCount - buyoutPrice
@@ -201,10 +204,8 @@ function ADB:checkAuction(timeLeft, itemCount, minBid, buyoutPrice, bidAmount, m
           SendChatMessage(msg, ADB.sendTo)
         end
       end
+      return
     end
-  end
-  if timeLeft ~= 1 then
-    return -- don't look at bid for longer auctions
   end
   -- bid check, includes increment
   local bid = minBid
@@ -212,7 +213,7 @@ function ADB:checkAuction(timeLeft, itemCount, minBid, buyoutPrice, bidAmount, m
     bid = bidAmount + minIncrement
   end
   local vendorProfit = vendorUnitPrice * itemCount - bid
-  if vendorProfit > ADB.bidProfit then
+  if timeLeft == 1 and vendorProfit > ADB.bidProfit then
     ADB:Debug("vendor bid: % bidProfit=% vup=% bid=% itemCount=% isOurBid=%", itemLink, vendorProfit, vendorUnitPrice,
               bid, itemCount, ourBid)
     if not ourBid then
@@ -225,6 +226,20 @@ function ADB:checkAuction(timeLeft, itemCount, minBid, buyoutPrice, bidAmount, m
                          GetCoinText(vendorProfit), itemCount)
         SendChatMessage(tmsg, ADB.sendTo)
       end
+    end
+    return
+  end
+  if vendorUnitPrice == 0 and bid < ADB.lowBid and not ourBid and timeLeft <= ADB.lowBidTime then
+    if itemLink == ADB.lastLowBid then
+      ADB:Debug(2, "repeated lowbid on " .. itemLink)
+      return
+    end
+    ADB.lastLowBid = itemLink
+    ADB:PrintDefault("AHDB: |cFF8742f5Low bid|r Auction " .. itemLink .. "x% bid " .. GetCoinTextureString(bid), itemCount)
+    -- Send to sendTo  -- GetCoinText
+    if ADB.sendTo then
+      local tmsg = ADB:format("AHDB: Low bid Auction " .. itemLink .. "x% bid " .. GetCoinText(bid) .. " < vendor by ", itemCount)
+      SendChatMessage(tmsg, ADB.sendTo)
     end
   end
 end
