@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.03.01 Aug 8th 2020
+- Misc dev mode improvements: Seen filter for lowbid is now a set and corrected whisper message.
+
 v1.03.00 July 24th 2020
 - Auction Item Database schema v5, now contains itemSellPrice, itemStackCount, itemClassID,
   itemSubClassID, itemRarity, itemMinLevel prefix before the link (MoLib change)

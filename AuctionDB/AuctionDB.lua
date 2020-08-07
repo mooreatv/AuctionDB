@@ -177,7 +177,7 @@ ADB.buyoutProfit = 48 -- 48 copper
 ADB.bidProfit = 78 -- 78 copper
 ADB.lowBid = 10 -- display low bids on items without vendor price
 ADB.lowBidTime = 3 -- only 30,2h,8h for low bids
-ADB.lastLowBid = nil -- avoid spamming for hundreds of same
+ADB.seenLowBid = {} -- avoid spamming for hundreds of same
 
 -- ADB.sendTo = "OFFICER"
 
@@ -230,15 +230,15 @@ function ADB:checkAuction(timeLeft, itemCount, minBid, buyoutPrice, bidAmount, m
     return
   end
   if vendorUnitPrice == 0 and bid < ADB.lowBid and not ourBid and timeLeft <= ADB.lowBidTime then
-    if itemLink == ADB.lastLowBid then
+    if ADB.seenLowBid[itemLink] then
       ADB:Debug(2, "repeated lowbid on " .. itemLink)
       return
     end
-    ADB.lastLowBid = itemLink
+    ADB.seenLowBid[itemLink] = true
     ADB:PrintDefault("AHDB: |cFF8742f5Low bid|r Auction " .. itemLink .. "x% bid " .. GetCoinTextureString(bid), itemCount)
     -- Send to sendTo  -- GetCoinText
     if ADB.sendTo then
-      local tmsg = ADB:format("AHDB: Low bid Auction " .. itemLink .. "x% bid " .. GetCoinText(bid) .. " < vendor by ", itemCount)
+      local tmsg = ADB:format("AHDB: Low bid Auction " .. itemLink .. "x% bid " .. GetCoinText(bid), itemCount)
       SendChatMessage(tmsg, ADB.sendTo)
     end
   end
@@ -402,6 +402,7 @@ function ADB:MaybeStartScan(msg, nowarning)
 end
 
 function ADB:AHendOfScanCB()
+  ADB.seenLowBid = {}
   if ADB.autoSave then
     -- C_UI.Reload()
     ADB:Execute("/reload", L["Save the scan data to SavedVariables"], true)
