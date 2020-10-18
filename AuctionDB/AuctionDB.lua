@@ -46,6 +46,12 @@ ADB.savePosSuffix = "buttonPos" -- button pos is button.name .. savePosSuffix
 
 function ADB:SetupMenu()
   ADB:WipeFrame(ADB.mmb)
+  if ADB.hideMinimap then
+    ADB:Debug("Not showing minimap button per config")
+    return
+  else
+    ADB:Debug("Showing minimap button per config")
+  end
   ADB.minimapButtonAngle = 0
   local name = "AHDBminimapButton"
   local b = ADB:minimapButton(ADB[name .. ADB.savePosSuffix], name, "Interface/Addons/AuctionDB/AuctionDB.blp")
@@ -541,9 +547,12 @@ function ADB:CreateOptionsPanel()
                                       L["Shows, if checked, the big button prompting you to go do a scan; hides if unchecked."])
                           :Place(4, 20)
 
+  local hideMinimap = p:addCheckBox(L["Hide minimap button"],
+                                    L["When check the minimap button is hidden."]):PlaceRight(30)
+
   local disableKeybinds = p:addCheckBox(L["Disable key bindings"],
                                         L["Disable the automatic temporary keybinding when a scan is possible."])
-                            :PlaceRight(40)
+                            :PlaceRight(30)
 
   local showText = p:addCheckBox(L["Show text about scan possible and commands"],
                                  L["Shows or disable the text indicating a scan is possible" ..
@@ -594,6 +603,7 @@ function ADB:CreateOptionsPanel()
     disableKeybinds:SetChecked(ADB.disableKeybinds)
     showText:SetChecked(ADB.showText)
     waitForSellers:SetChecked(ADB.ahWaitForSellers)
+    hideMinimap:SetChecked(ADB.hideMinimap)
   end
 
   function p:HandleOk()
@@ -623,6 +633,9 @@ function ADB:CreateOptionsPanel()
     ADB:SetSaved("disableKeybinds", disableKeybinds:GetChecked())
     ADB:SetSaved("showText", showText:GetChecked())
     ADB:SetSaved("ahWaitForSellers", waitForSellers:GetChecked())
+    if ADB:SetSaved("hideMinimap", hideMinimap:GetChecked()) == 1 then
+      ADB:SetupMenu()
+    end
     if ADB:SetSaved("allowLDBI", allowLDBI:GetChecked()) == 1 then
       ADB:SetupMenu()
     end
