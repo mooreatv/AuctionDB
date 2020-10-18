@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.04.01 Oct 18th 2020
+- Fix for multiple flip/flop of show/hide minimap generating molib error. (pick up new molib too)
+
 v1.04.00 Oct 18th 2020
 - Added option to hide minimap button in config `/ahdb conf`
 

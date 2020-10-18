@@ -45,7 +45,7 @@ ADB.savePosSuffix = "buttonPos" -- button pos is button.name .. savePosSuffix
 -- TODO: move most of this to MoLib
 
 function ADB:SetupMenu()
-  ADB:WipeFrame(ADB.mmb)
+  ADB.mmb = ADB:WipeFrame(ADB.mmb)
   if ADB.hideMinimap then
     ADB:Debug("Not showing minimap button per config")
     return
