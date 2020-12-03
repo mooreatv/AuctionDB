@@ -13,6 +13,10 @@
 ## SavedVariables: AuctionDBSaved
 ## OptionalDeps: BetterVendorPrice, SexyMap, ProjectAzilroka
 ## Globe: check-classic
+## X-OpenSource-License: LPGLv3
+## X-OpenSource-Releases: https://github.com/mooreatv/AuctionDB/releases
+## X-Curse-Project-ID: 336518
+## X-WoWI-ID: 25159
 MoLib/MoLib.lua
 MoLib/MoLibUI.lua
 MoLib/MoLibDB.lua

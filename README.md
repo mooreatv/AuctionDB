@@ -17,8 +17,8 @@ You will be able to later query that DB even when not at the AH
 
 ## More information
 
-Get the binary release using [curseforge](https://www.curseforge.com/wow/addons/auction-house-database)/twitch
-client or on wowinterface
+Get the binary release using [curseforge](https://www.curseforge.com/wow/addons/auction-house-database)
+client or other addon manager or on wowinterface.
 
 The source of the addon resides on https://github.com/mooreatv/AuctionDB
 (and the MoLib library at https://github.com/mooreatv/MoLib)
