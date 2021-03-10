@@ -4,6 +4,10 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.04.04 March 9th 2021
+- Fix up github action packager version.
+- Sorry still doesn't work on retail
+
 v1.04.03 Dec 2nd 2020
 - Classic 1.13.06 + other TOC info additions.
 - Sorry still doesn't work on retail
