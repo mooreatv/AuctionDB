@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.04.05 April 21st 2021
+- Classic now 1.13.07
+
 v1.04.04 March 9th 2021
 - Fix up github action packager version.
 - Sorry still doesn't work on retail
