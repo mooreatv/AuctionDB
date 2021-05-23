@@ -4,8 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
-v1.05.01 May 23rd 2021
+v1.05.02 May 23rd 2021
 - Actually add the multiple TOCs this time (Classic BC support)
+  and right version in the file
 
 v1.05.00 May 10th 2021
 - Multi TOC support for Burning Crusade vs Classic Era
