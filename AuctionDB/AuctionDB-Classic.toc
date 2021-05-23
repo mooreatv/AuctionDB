@@ -1,0 +1,22 @@
+## Interface: 11307
+## Title: Auction House DataBase (AHDB)
+## Notes: Auction House DataBase, records DB history and offline queries, for classic and more (|cFF99E5FF/ahdb|r)
+## Notes: Classic Era Edition
+## Author: MooreaTV moorea@ymail.com
+## Version: @project-version@
+## DefaultState: Enabled
+## LoadOnDemand: 0
+## SavedVariables: AuctionDBSaved
+## OptionalDeps: BetterVendorPrice, SexyMap, ProjectAzilroka
+## Globe: check-classic
+## X-OpenSource-License: LPGLv3
+## X-OpenSource-Releases: https://github.com/mooreatv/AuctionDB/releases
+## X-Curse-Project-ID: 336518
+## X-WoWI-ID: 25159
+MoLib/MoLib.lua
+MoLib/MoLibUI.lua
+MoLib/MoLibDB.lua
+MoLib/Realms.lua
+MoLib/MoLibAH.lua
+AuctionDB.lua
+locale\locale.xml
