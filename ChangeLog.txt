@@ -4,6 +4,10 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.05.01 Sept 2nd 2021
+- BCC 2.5.2
+- Disable waiting for seller info BCC as it doesn't work
+
 v1.05.00 May 10th 2021
 - Multi TOC support for Burning Crusade vs Classic Era
 

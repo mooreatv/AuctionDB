@@ -290,6 +290,9 @@ function ADB:AfterSavedVars()
   if self.savedVar and self.savedVar.ah then
     ADB:AHRestoreData()
   end
+  if WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC then
+    ADB.ahWaitForSellers = false
+  end
 end
 
 local additionalEventHandlers = {

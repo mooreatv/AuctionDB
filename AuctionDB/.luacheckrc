@@ -21,6 +21,8 @@ globals = {
     "SendChatMessage",
     "GetCoinText",
     "unpack",
+    "WOW_PROJECT_ID",
+    "WOW_PROJECT_BURNING_CRUSADE_CLASSIC",
 }
 max_line_length = 132
 ignore = {
