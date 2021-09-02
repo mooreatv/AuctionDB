@@ -1,0 +1,15 @@
+## Interface: 90005
+## Title: Auction House DataBase (AHDB)
+## Notes: Auction House DataBase, records DB history and offline queries, for classic and more (|cFF99E5FF/ahdb|r)
+## Notes: Not yet supported for Shadowlands AH changes.
+## Author: MooreaTV moorea@ymail.com
+## Version: @project-version@
+## DefaultState: Enabled
+## LoadOnDemand: 0
+## SavedVariables: AuctionDBSaved
+## OptionalDeps: BetterVendorPrice, SexyMap, ProjectAzilroka
+## Globe: check-classic
+## X-OpenSource-License: LPGLv3
+## X-OpenSource-Releases: https://github.com/mooreatv/AuctionDB/releases
+## X-Curse-Project-ID: 336518
+## X-WoWI-ID: 25159
