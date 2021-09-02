@@ -1,4 +1,4 @@
-## Interface: 20501
+## Interface: 20502
 ## Title: Auction House DataBase (AHDB)
 ## Notes: Auction House DataBase, records DB history and offline queries, for classic and more (|cFF99E5FF/ahdb|r)
 ## Notes: Burning Crusade Classic Edition
