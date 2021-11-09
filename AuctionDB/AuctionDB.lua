@@ -290,7 +290,7 @@ function ADB:AfterSavedVars()
   if self.savedVar and self.savedVar.ah then
     ADB:AHRestoreData()
   end
-  if WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC then
+  if ADB.isBurningCrusade then
     ADB.ahWaitForSellers = false
   end
 end
@@ -542,6 +542,10 @@ function ADB:CreateOptionsPanel()
                                        L["Slower initial scan per session but more complete information with all sellers"])
                            :Place(4, 20)
 
+  local skipOverErrors = p:addCheckBox(L["Skip over errors"],
+                                       L["If we can't get a given item information after retries, skip to next item"])
+                           :PlaceRight(30)
+
   local doTarget = p:addCheckBox(L["Target Auctioneer at load time"],
                                  L["Automatically prompts for targetting the auctioneer at /reload or login time."])
                      :Place(4, 20)
@@ -606,6 +610,7 @@ function ADB:CreateOptionsPanel()
     disableKeybinds:SetChecked(ADB.disableKeybinds)
     showText:SetChecked(ADB.showText)
     waitForSellers:SetChecked(ADB.ahWaitForSellers)
+    skipOverErrors:SetChecked(ADB.ahSkipOverErrors)
     hideMinimap:SetChecked(ADB.hideMinimap)
   end
 
@@ -636,6 +641,7 @@ function ADB:CreateOptionsPanel()
     ADB:SetSaved("disableKeybinds", disableKeybinds:GetChecked())
     ADB:SetSaved("showText", showText:GetChecked())
     ADB:SetSaved("ahWaitForSellers", waitForSellers:GetChecked())
+    ADB:SetSaved("ahSkipOverErrors", skipOverErrors:GetChecked())
     if ADB:SetSaved("hideMinimap", hideMinimap:GetChecked()) == 1 then
       ADB:SetupMenu()
     end

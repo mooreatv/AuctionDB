@@ -4,6 +4,10 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.05.04 November 9th 2021
+- New option to skip over stuck items in config. Applies rarely to tbc AH
+  (most of the fix in MoLib 8.1.1) - fixes #36
+
 v1.05.03 Sept 2nd 2021
 - BCC 2.5.2
 - Disable waiting for seller info BCC as it doesn't work
