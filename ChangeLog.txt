@@ -4,7 +4,7 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
-v1.06.00 Feb 12th 2022
+v1.06.01 Feb 12th 2022
 - Single zip build + TOC updates + warning that wait for sellers has been broken by blizzard.
 
 v1.05.04 November 9th 2021
