@@ -21,20 +21,12 @@ jobs:
           exec /home/runner/.luarocks/bin/luacheck AuctionDB/*.lua --no-color --config ./AuctionDB/.luacheckrc -q
       - name: Get the packager
         run: |
-          curl -s https://raw.githubusercontent.com/mooreatv/packager/master/release.sh > ./release.sh
+          curl -s https://raw.githubusercontent.com/mooreatv/packager/v2m/release.sh > ./release.sh
           chmod 755 ./release.sh
-      - name: Create Classic Package
-        run: ./release.sh -g 1.14.1 -m pkgmeta.yaml -p 336518 -w 25159
+      - name: Create Multitoc Package
+        run: ./release.sh -m pkgmeta.yaml
         env:
          CF_API_KEY: ${{ secrets.CF_API_KEY }}
          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
          WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}
-      - name: Create BfA Package
-        run: ./release.sh -m pkgmeta.yaml -p 336518
-        env:
-         CF_API_KEY: ${{ secrets.CF_API_KEY }}
-         GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@master
-        with:
-          name: DynamicBoxerBuild-${{ github.sha }}
-          path: .release/
+         WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}

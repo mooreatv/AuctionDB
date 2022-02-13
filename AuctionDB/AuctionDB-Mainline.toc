@@ -13,3 +13,4 @@
 ## X-OpenSource-Releases: https://github.com/mooreatv/AuctionDB/releases
 ## X-Curse-Project-ID: 336518
 ## X-WoWI-ID: 25159
+## X-Wago-ID: R4N2zdNL

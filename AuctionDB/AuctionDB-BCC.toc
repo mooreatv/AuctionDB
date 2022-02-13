@@ -1,4 +1,4 @@
-## Interface: 20502
+## Interface: 20503
 ## Title: Auction House DataBase (AHDB)
 ## Notes: Auction House DataBase, records DB history and offline queries, for classic and more (|cFF99E5FF/ahdb|r)
 ## Notes: Burning Crusade Classic Edition
@@ -13,6 +13,7 @@
 ## X-OpenSource-Releases: https://github.com/mooreatv/AuctionDB/releases
 ## X-Curse-Project-ID: 336518
 ## X-WoWI-ID: 25159
+## X-Wago-ID: R4N2zdNL
 MoLib/MoLib.lua
 MoLib/MoLibUI.lua
 MoLib/MoLibDB.lua

@@ -1,5 +1,5 @@
 # Auction House DataBase
-Auction House DataBase (AHDB for short), records DB history and allows offline queries, for classic and more.
+Auction House DataBase (AHDB for short), records DB history and allows offline queries, for classic and bcc.
 
 This Open Source addon is mostly to capture the evolution of the WoW classic economy from empty to mature.
 

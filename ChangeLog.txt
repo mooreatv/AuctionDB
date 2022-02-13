@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.06.00 Feb 12th 2022
+- Single zip build + TOC updates + warning that wait for sellers has been broken by blizzard.
+
 v1.05.04 November 9th 2021
 - New option to skip over stuck items in config. Applies rarely to tbc AH
   (most of the fix in MoLib 8.1.1) - fixes #36

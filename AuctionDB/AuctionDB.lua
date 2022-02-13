@@ -290,9 +290,7 @@ function ADB:AfterSavedVars()
   if self.savedVar and self.savedVar.ah then
     ADB:AHRestoreData()
   end
-  if ADB.isBurningCrusade then
-    ADB.ahWaitForSellers = false
-  end
+  -- ahWaitForSellers used to work (in 1.13) but they broke it in BCC and then "ported" the breakage
 end
 
 local additionalEventHandlers = {
