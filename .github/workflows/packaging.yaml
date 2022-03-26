@@ -17,7 +17,7 @@ jobs:
       - name: Install and run Luacheck
         run: |
           sudo apt-get install luarocks
-          luarocks install --local luacheck
+          luarocks install --local luacheck 0.23.0
           exec /home/runner/.luarocks/bin/luacheck AuctionDB/*.lua --no-color --config ./AuctionDB/.luacheckrc -q
       - name: Get the packager
         run: |
