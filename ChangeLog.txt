@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.06.03 March 26th 2022
+- Update Burning Crusade TOC for 2.5.4
+
 v1.06.02 Feb 22nd 2022
 - Updated the TOC (even though Shadowlands is still not supported, sorry)
   and updated packager again to latest community packager (v2)
