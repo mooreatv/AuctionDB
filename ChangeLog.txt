@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.06.05 June 4th 2022
+- Updated for Classic Era 1.14.3
+
 v1.06.04 March 26th 2022
 - Update Burning Crusade TOC for 2.5.4
 - peg luacheck to 0.23.0
