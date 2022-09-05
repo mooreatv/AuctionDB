@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.07.02 Sept 5th 2022
+- Avoid shipping wrong MoLib in SL even if AHDB doesn't work with SL
+
 v1.07.01 Sept 4th 2022
 - Pick up latest MoLib with isBurningCrusade / isWrath fix.
 
