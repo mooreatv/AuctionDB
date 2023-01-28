@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.07.03 Jan 27th 2023
+- Update wrath TOC
+
 v1.07.02 Sept 5th 2022
 - Avoid shipping wrong MoLib in SL even if AHDB doesn't work with SL
 
