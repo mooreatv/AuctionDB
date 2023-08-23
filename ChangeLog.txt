@@ -4,6 +4,9 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+v1.07.05 Aug 22nd 2023
+- Update for Classic 1.14.4 - in time for Classic Hardcore launch!
+
 v1.07.04 Jun 24th 2023
 - Update wrath to 3.4.2
 
