@@ -1,4 +1,4 @@
-## Interface: 11404
+## Interface: 11500
 ## Title: Auction House DataBase (AHDB)
 ## Notes: Auction House DataBase, records DB history and offline queries, for classic and more (|cFF99E5FF/ahdb|r)
 ## Notes: Classic Era / Season of Mastery Edition
