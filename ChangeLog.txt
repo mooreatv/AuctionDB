@@ -5,6 +5,9 @@ Coming next:
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
 v1.07.07 Nov 18th 2023
+- Classic / Season of Discovery is now 1.15.1
+
+v1.07.07 Nov 18th 2023
 - Classic is now 1.15.0
 
 v1.07.06 Oct 24th 2023

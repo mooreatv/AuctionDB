@@ -1,7 +1,7 @@
-## Interface: 11500
+## Interface: 11501
 ## Title: Auction House DataBase (AHDB)
 ## Notes: Auction House DataBase, records DB history and offline queries, for classic and more (|cFF99E5FF/ahdb|r)
-## Notes: Classic Era / Season of Mastery Edition
+## Notes: Classic Era / Season of Mastery / Season of Discovery Edition
 ## Author: MooreaTV moorea@ymail.com
 ## Version: @project-version@
 ## DefaultState: Enabled
