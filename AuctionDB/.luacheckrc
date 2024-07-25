@@ -1,9 +1,6 @@
 globals = {
     "AuctionDBSaved",
     "CreateFrame",
-    "InterfaceOptions_AddCategory",
-    "InterfaceOptionsFrame",
-    "InterfaceOptionsFrame_OpenToCategory",
     "SlashCmdList",
     "SLASH_AuctionDB_Slash_Command1",
     "geterrorhandler",

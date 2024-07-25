@@ -482,9 +482,7 @@ function ADB.Slash(arg) -- can't be a : because used directly as slash command
     ADB:ItemInfoScan()
   elseif cmd == "c" then
     -- Show config panel
-    -- InterfaceOptionsList_DisplayPanel(ADB.optionsPanel)
-    InterfaceOptionsFrame:Show() -- onshow will clear the category if not already displayed
-    InterfaceOptionsFrame_OpenToCategory(ADB.optionsPanel) -- gets our name selected
+    ADB:ShowConfigPanel(ADB.optionsPanel)
   elseif ADB:StartsWith(arg, "debug") then
     -- debug
     if rest == "on" then
@@ -674,7 +672,7 @@ function ADB:CreateOptionsPanel()
     end
   end
   -- Add the panel to the Interface Options
-  InterfaceOptions_AddCategory(ADB.optionsPanel)
+  ADB:ConfigPanel(ADB.optionsPanel)
 end
 
 -- bindings / localization
