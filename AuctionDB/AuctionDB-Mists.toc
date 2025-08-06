@@ -1,7 +1,7 @@
-## Interface: 20504
+## Interface: 50500
 ## Title: Auction House DataBase (AHDB)
 ## Notes: Auction House DataBase, records DB history and offline queries, for classic and more (|cFF99E5FF/ahdb|r)
-## Notes: Burning Crusade Classic Edition
+## Notes: MoP Classic Edition
 ## Author: MooreaTV moorea@ymail.com
 ## Version: @project-version@
 ## DefaultState: Enabled
