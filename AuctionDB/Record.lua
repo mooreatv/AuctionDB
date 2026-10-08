@@ -100,7 +100,35 @@ function ADB:RecordScan(e)
              #keys, math.floor(#data / 1024), self.db.keepScans)
 end
 
-ADB:Listen("SCAN_DATA", function(self, e) if e.link then self:RecordScan(e) end end)
+-- Some auctions have no link yet when the scan is read (their item info is still loading): fetch them again for up
+-- to 10s (while the AH is open), then use the item's base link for any still missing, so every auction is recorded.
+function ADB:CompleteLinks(e, done)
+  local missing = {}
+  for k = 1, e.n do if not e.link[k] then missing[#missing + 1] = k end end
+  self:Debug("%d auctions without a link yet", #missing)
+  local tries = 0
+  local function try()
+    local left = {}
+    for _, k in ipairs(missing) do
+      e.link[k] = self.ahOpen and C_AuctionHouse.GetReplicateItemLink(e.idx[k]) or nil
+      if not e.link[k] then left[#left + 1] = k end
+    end
+    missing = left
+    tries = tries + 1
+    if #missing > 0 and tries < 10 and self.ahOpen then
+      C_Timer.After(1, try)
+      return
+    end
+    for _, k in ipairs(missing) do e.link[k] = select(2, C_Item.GetItemInfo(e.item[k])) end
+    self:Debug("links completed after %d tries, %d with the item's base link", tries, #missing)
+    done()
+  end
+  try()
+end
+
+ADB:Listen("SCAN_DATA", function(self, e)
+  if e.link then self:CompleteLinks(e, function() self:RecordScan(e) end) end
+end)
 
 ADB:AddCommand("keepscans", function(self, rest)
   local n = tonumber(rest)
