@@ -16,6 +16,8 @@ The Classic / Mists / retail versions (and their MoLib based code) are on the
 - On the AH sell page, the price turns red with a warning when, after the AH cut, you'd get less than a vendor pays.
 - Items vendors refuse even though they have a sell price are learned and get no vendor price (`/ahdb unsellable`).
 - `/ahdb price <item>` shows the saved price history, even away from the AH.
+- Optionally ("Record full scans" in the options) it also keeps every auction of the last scans, which
+  [AHDBapp](https://github.com/mooreatv/AHDBapp) can load into a database for your own analysis of the economy.
 - `/ahdb bug` shows a copyable log for bug reports. `/ahdb` lists all commands.
 
 ## More information

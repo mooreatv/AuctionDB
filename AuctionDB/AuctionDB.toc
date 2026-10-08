@@ -15,6 +15,7 @@
 ## IconTexture: Interface\AddOns\AuctionDB\AuctionDB
 AuctionDB.lua
 Scan.lua
+Record.lua
 Tooltip.lua
 Vendor.lua
 Sell.lua

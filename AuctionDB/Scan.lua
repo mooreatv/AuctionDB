@@ -90,11 +90,15 @@ end)
 
 -- Copies what we need of each entry into flat arrays (the replicate data may go away when the AH closes):
 -- e = {n, item[k], count[k], buyout[k], bid[k] (next bid, 0 if none), timeLeft[k] (if bid), idx[k] (replicate index),
--- withBids, byItem, nItems}, also passed with the SCAN_DATA internal event.
+-- withBids, byItem, nItems; with the record full scans option also link[k], allTimeLeft[k], minBid[k], curBid[k]},
+-- also passed with the SCAN_DATA internal event.
 function ADB:ReadReplicate()
   local n = C_AuctionHouse.GetNumReplicateItems()
   self:Debug("scan data after %.1fs: %d entries", GetTime() - self.scanStart, n)
   local e = {n = 0, item = {}, count = {}, buyout = {}, bid = {}, timeLeft = {}, idx = {}}
+  -- full scan recording (Record.lua) also needs each auction's link, time left, min bid and current bid
+  local record = self.db.recordScans
+  if record then e.link, e.allTimeLeft, e.minBid, e.curBid = {}, {}, {}, {} end
   local withBids = 0
   local i = 0
   local function step()
@@ -120,6 +124,12 @@ function ADB:ReadReplicate()
           e.timeLeft[k] = C_AuctionHouse.GetReplicateItemTimeLeft(idx)
         end
         e.idx[k] = idx
+        if record then
+          e.link[k] = C_AuctionHouse.GetReplicateItemLink(idx)
+          e.allTimeLeft[k] = e.timeLeft[k] or C_AuctionHouse.GetReplicateItemTimeLeft(idx)
+          e.minBid[k] = minBid or 0
+          e.curBid[k] = bidAmount or 0
+        end
       end
     end
     i = last + 1
