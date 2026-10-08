@@ -1,6 +1,6 @@
 AuctionDB (AHDB) - WoW Forever edition
 
-v2.0.0 (unreleased)
+v2.0.0 (2026-10-08)
 - Rewrite for WoW Forever (new C_AuctionHouse API), no libraries; Classic/Mists/retail code is on the legacy branch.
 - Full AH scan when you open the AH (Blizzard allows one every 15 minutes per game session; hold Shift to skip),
   "AHDB Scan" button above the AH with the time left before the next scan.
