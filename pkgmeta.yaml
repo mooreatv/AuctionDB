@@ -2,23 +2,17 @@ package-as: AuctionDB
 
 ignore:
     - install.bat
-    - classictag.sh
+    - installprobe.bat
+    - OldChangeLog.txt
     - luaformat.cfg
-    - MoLib/installmolib.bat
-    - MoLib/MoLib.toc
-    - MoLib/luaformat.cfg
-    - MoLib/README.md
-    - MoLib/tests
-    - locale/genlocale.sh
-    - pkgmeta.yaml
-    - AuctionDB/locale/genlocale.sh
-    - MoLib/pkgmeta.yaml
+    - Probe
+    - README.md
+    - .github
+    - AuctionDB/.luacheckrc
 
-externals:
-    MoLib:
-        url: https://github.com/mooreatv/MoLib
-
-manual-changelog: ChangeLog.txt
+manual-changelog:
+    filename: ChangeLog.txt
+    markup-type: text
 
 move-folders:
   AuctionDB/AuctionDB: AuctionDB

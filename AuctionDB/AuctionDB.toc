@@ -1,1 +1,22 @@
-AuctionDB-Classic.toc
+## Interface: 16001
+## Title: Auction House DataBase (AHDB)
+## Notes: Full AH scans, price history, vendor and AH prices in tooltips, warns before selling below vendor price (|cFF99E5FF/ahdb|r)
+## Notes: WoW Forever edition
+## Author: MooreaTV moorea@ymail.com
+## Version: @project-version@
+## DefaultState: Enabled
+## LoadOnDemand: 0
+## SavedVariables: AuctionDBForeverSaved
+## X-OpenSource-License: LGPLv3
+## X-OpenSource-Releases: https://github.com/mooreatv/AuctionDB/releases
+## X-Curse-Project-ID: 336518
+## X-WoWI-ID: 25159
+## X-Wago-ID: R4N2zdNL
+## IconTexture: Interface\AddOns\AuctionDB\AuctionDB
+AuctionDB.lua
+Scan.lua
+Tooltip.lua
+Vendor.lua
+Sell.lua
+Options.lua
+Bug.lua
