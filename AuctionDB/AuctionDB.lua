@@ -23,6 +23,8 @@ ADB.defaults = {
   debug = false,
   autoScan = true, -- full scan when opening the AH (if not throttled)
   sellWarning = true, -- warn on the AH sell pages when the price nets less than a vendor pays
+  recordScans = false, -- keep every auction of the last scans (AHDBapp format, see Record.lua)
+  keepScans = 3, -- full scans kept per auction house when recording
   tooltip = true,
   historySize = 30 -- scans kept per item
 }

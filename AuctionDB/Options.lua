@@ -9,6 +9,10 @@ local CHECKBOXES = {
   }, {
     "sellWarning", "Warn when selling below vendor price",
     "On the AH sell page, warn when your price (after the AH cut) is less than what a vendor pays for the item."
+  }, {
+    "recordScans", "Record full scans (for AHDBapp)",
+    "Also save every auction of the last scans (/ahdb keepscans, 3 per auction house by default), for the out of game " ..
+      "AHDBapp database loader (github.com/mooreatv/AHDBapp). Makes the saved data a few MB bigger per scan kept."
   }, {"tooltip", "Prices in item tooltips", "Vendor price per unit and the last scan's AH min / median price."},
   {"debug", "Debug output", "Print detailed messages to the chat window (always kept in /ahdb bug)."}
 }

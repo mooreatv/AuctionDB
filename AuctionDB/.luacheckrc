@@ -28,6 +28,8 @@ read_globals = {
   "ERR_VENDOR_DOESNT_BUY",
   "GameTooltip",
   "GameTooltip_Hide",
+  "GetLocale",
+  "GetRealmName",
   "GetServerTime",
   "GetTime",
   "Settings",
