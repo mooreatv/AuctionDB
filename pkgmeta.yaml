@@ -10,10 +10,6 @@ ignore:
     - .github
     - AuctionDB/.luacheckrc
 
-manual-changelog:
-    filename: ChangeLog.txt
-    markup-type: text
-
 move-folders:
   AuctionDB/AuctionDB: AuctionDB
 
