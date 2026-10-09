@@ -12,7 +12,9 @@ The Classic / Mists / retail versions (and their MoLib based code) are on the
   skip it). The "AHDB Scan" button above the AH shows when the next scan is possible.
 - Prices are kept separately for the Alliance, Horde and neutral (goblin) auction houses.
 - Item tooltips show the vendor price per unit (the game's own line is for the whole stack) and the last scan's
-  AH min and median price.
+  AH min and median price. Also install [BVP](https://www.curseforge.com/wow/addons/better-vendor-price)
+  (BetterVendorPrice) for full stack and stack size vendor prices: BVP then shows the vendor lines and AHDB the AH
+  ones, no duplicates.
 - On the AH sell page, the price turns red with a warning when, after the AH cut, you'd get less than a vendor pays.
 - Items vendors refuse even though they have a sell price are learned and get no vendor price (`/ahdb unsellable`).
 - `/ahdb price <item>` shows the saved price history, even away from the AH.

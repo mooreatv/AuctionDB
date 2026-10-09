@@ -21,7 +21,8 @@ local function onItemTooltip(tt, data)
   if data.type and data.type ~= Enum.TooltipDataType.Item then return end
   local itemID = data.id
   local vp = self:SellablePrice(itemID) -- nil when vendors refuse it
-  if vp and vp > 0 then
+  -- BetterVendorPrice shows the per item / full stack vendor prices
+  if vp and vp > 0 and not C_AddOns.IsAddOnLoaded("BetterVendorPrice") then
     local native
     for _, line in ipairs(data.lines or {}) do
       if line.type == Enum.TooltipDataLineType.SellPrice then native = line.price end
