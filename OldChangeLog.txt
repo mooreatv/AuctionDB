@@ -4,6 +4,20 @@ Coming next:
 - Your input/suggestions welcome !
 - See open issues for ideas https://github.com/mooreatv/AuctionDB/issues
 
+After v2.0.0 (WoW Forever), release notes come from the commit log again.
+
+v2.0.0 (2026-10-08)
+- Rewrite for WoW Forever (new C_AuctionHouse API), no libraries; Classic/Mists/retail code is on the legacy branch.
+- Full AH scan when you open the AH (Blizzard allows one every 15 minutes per game session; hold Shift to skip),
+  "AHDB Scan" button above the AH with the time left before the next scan.
+- Price history per item (min, median, quantity) kept separately for the Alliance, Horde and neutral auction houses.
+- Item tooltips: vendor price per unit (the game's line is for the whole stack), last scan's AH min and median.
+- Warns on the AH sell page when your price, after the AH cut, is less than what a vendor pays.
+- Optional "Record full scans": every auction of the last scans (/ahdb keepscans), for AHDBapp.
+- Learns items vendors refuse although they have a sell price (e.g. Instant Poison), /ahdb unsellable.
+- Options panel (Options > AddOns > AHDB, /ahdb options), /ahdb price <item> for offline price history,
+  /ahdb bug for a copyable log.
+
 Post April 2024, relying on commit log for automated changelog to lessen the update burden when only the TOC needs updating.
 
 v1.07.10 April 2nd 2024
