@@ -40,6 +40,7 @@ end
 
 local function build()
   local panel = CreateFrame("Frame")
+  panel:Hide() -- new frames start shown: OnShow (values refresh) wouldn't fire the first time Settings shows it
   panel.name = "AHDB"
   panel:SetScript("OnShow", Refresh)
   local t = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalHuge")
