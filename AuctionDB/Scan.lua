@@ -90,12 +90,13 @@ end)
 
 -- Copies what we need of each entry into flat arrays (the replicate data may go away when the AH closes):
 -- e = {n, item[k], count[k], buyout[k], bid[k] (next bid, 0 if none), timeLeft[k] (if bid), idx[k] (replicate index),
--- withBids, byItem, nItems; with the record full scans option also link[k], allTimeLeft[k], minBid[k], curBid[k]},
+-- mine[k] (true for our own auctions), withBids, byItem, nItems; with the record full scans option also link[k],
+-- allTimeLeft[k], minBid[k], curBid[k]},
 -- also passed with the SCAN_DATA internal event.
 function ADB:ReadReplicate()
   local n = C_AuctionHouse.GetNumReplicateItems()
   self:Debug("scan data after %.1fs: %d entries", GetTime() - self.scanStart, n)
-  local e = {n = 0, item = {}, count = {}, buyout = {}, bid = {}, timeLeft = {}, idx = {}}
+  local e = {n = 0, item = {}, count = {}, buyout = {}, bid = {}, timeLeft = {}, idx = {}, mine = {}}
   -- full scan recording (Record.lua) also needs each auction's link, time left, min bid and current bid
   local record = self.db.recordScans
   if record then e.link, e.allTimeLeft, e.minBid, e.curBid = {}, {}, {}, {} end
@@ -104,7 +105,7 @@ function ADB:ReadReplicate()
   local function step()
     local last = math.min(i + BATCH, n) - 1
     for idx = i, last do
-      local _, _, count, _, _, _, _, minBid, minIncrement, buyout, bidAmount, _, _, _, _, _, itemID =
+      local _, _, count, _, _, _, _, minBid, minIncrement, buyout, bidAmount, _, _, owner, _, _, itemID =
         C_AuctionHouse.GetReplicateItemInfo(idx)
       if itemID then
         local k = e.n + 1
@@ -124,6 +125,8 @@ function ADB:ReadReplicate()
           e.timeLeft[k] = C_AuctionHouse.GetReplicateItemTimeLeft(idx)
         end
         e.idx[k] = idx
+        -- the owner is only set on our own auctions (nil for everyone else's)
+        if owner and owner ~= "" then e.mine[k] = true end
         if record then
           e.link[k] = C_AuctionHouse.GetReplicateItemLink(idx)
           e.allTimeLeft[k] = e.timeLeft[k] or C_AuctionHouse.GetReplicateItemTimeLeft(idx)
