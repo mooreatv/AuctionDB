@@ -41,6 +41,7 @@ function ADB:Scan(force)
                  "/ahdb scan force to try anyway)", math.floor(left / 60), left % 60)
     return
   end
+  local previous = C_CVar.GetCVar(LAST_SCAN_CVAR)
   C_CVar.SetCVar(LAST_SCAN_CVAR, tostring(GetServerTime()))
   self.scanHouse = self:House(self.house)
   self.scanHouseName = self.house
@@ -53,7 +54,16 @@ function ADB:Scan(force)
   C_Timer.After(WAIT_TIMEOUT, function()
     if self.scanState == "waiting" and self.scanStart == start then
       self.scanState = nil
-      self:Print("no scan data after %d s (throttled by the server?)", WAIT_TIMEOUT)
+      -- a request that got nothing doesn't seem to count for the server: allow another one right away, but only
+      -- once in a row (two failures: wait the full 15 min)
+      self.scanFailures = (self.scanFailures or 0) + 1
+      if self.scanFailures == 1 then
+        C_CVar.SetCVar(LAST_SCAN_CVAR, previous)
+        self:Print("no scan data after %d s (throttled by the server?), you can try again now", WAIT_TIMEOUT)
+      else
+        self.scanFailures = 0
+        self:Print("no scan data after %d s again, next scan in 15 min", WAIT_TIMEOUT)
+      end
       self:Fire("SCAN_STATE")
     end
   end)
@@ -196,6 +206,7 @@ end
 -- Scan done: summary, then the scan data goes to whoever listens (e.g. add-ons on top of AHDB).
 function ADB:ScanDone(e)
   self.scanState = nil
+  self.scanFailures = 0
   self:Print("scan done in %.0fs: %d auctions, %d items (%d with bids)", GetTime() - self.scanStart, e.n, e.nItems,
              e.withBids)
   self:Fire("SCAN_STATE")
