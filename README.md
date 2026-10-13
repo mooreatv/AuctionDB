@@ -23,7 +23,9 @@ history, even away from the AH:
 ## What does it do?
 
 - Opening the auction house starts a full scan (Blizzard allows one every 15 minutes per game session; hold Shift to
-  skip it). The "AHDB Scan" button above the AH shows when the next scan is possible.
+  skip it). The "AHDB Scan" button above the AH shows when the next scan is possible. Away from the AH, a chat
+  message tells when it's possible again, and the minimap button's tooltip (or `/ahdb next`) shows the time left
+  (right-click the button for the options, drag it to move it).
 - Prices are kept separately for the Alliance, Horde and neutral (goblin) auction houses.
 - Item tooltips show the vendor price per unit (the game's own line is for the whole stack) and the last scan's
   AH min and median price, and how many are listed. Also install [BVP](https://www.curseforge.com/wow/addons/better-vendor-price)
