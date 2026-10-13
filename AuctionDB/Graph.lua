@@ -366,13 +366,15 @@ draw = function()
                                                                                            self:Age(low[1])))
 end
 
--- Opens (or switches) the window to that item, at the auction house currently viewed if the item was seen there.
+-- Opens (or switches) the window to that item.
 function ADB:ShowItem(itemID)
   if not frame then build() end
   frame.itemID = itemID
   frame.range = frame.range or savedState().range or 2
-  local house = self:ViewHouse()
-  if not self:LastPrice(itemID, house) then
+  -- the open AH, else this character's faction's (another one only when neither we nor a trusted character have
+  -- prices there)
+  local house = self.house or self:PlayerHouse()
+  if not self:LastPrice(itemID, house) and not self:BestPeer(house) then
     for _, h in ipairs(HOUSES) do
       if self:LastPrice(itemID, h) then
         house = h
