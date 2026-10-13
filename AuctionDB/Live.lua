@@ -64,7 +64,8 @@ local function finish(self, units, qty)
   local minU, median = self:PriceStats(units)
   local ts = GetServerTime()
   self:AddHistoryPoint(self:House(c.house), c.id, ts, minU, median, qty)
-  self:Debug("live search of %d for %s: min %d, median %d, %d listed", c.id, c.peer, minU, median, qty)
+  self:Print("live search of %s for %s: min %s, median %s, %d listed", select(2, C_Item.GetItemInfo(c.id)) or c.id,
+             c.peer, self:Money(minU), self:Money(median), qty)
   self:Send(c.peer, "R", c.qid, ("%s,%d,%d,%d,%d"):format(c.house, ts, minU, median, qty),
             "live result for item " .. c.id)
   self:Fire("HISTORY_MERGED", c.id, c.house, self.myName, 1)
@@ -115,6 +116,7 @@ ADB:OnMessage("L", function(self, sender, qid, payload)
     why = "AH busy, try again in a few seconds"
   end
   if why then
+    self:Print("%s asked for a live search of %s: %s", sender, select(2, C_Item.GetItemInfo(id)) or id, why)
     self:Send(sender, "B", qid, why, "no live search: " .. why)
     return
   end
@@ -145,7 +147,9 @@ ADB:On("AUCTION_HOUSE_THROTTLED_MESSAGE_SENT", function() sent = sent + 1 end)
 
 -- AH queries from the Blizzard UI or other add-ons: leave the AH to them a bit. Other add-ons can also set
 -- AuctionDB.ahBusy while they use the AH.
-for _, fn in ipairs({"SendBrowseQuery", "SendSearchQuery", "SendSellSearchQuery", "SearchForFavorites"}) do
+for _, fn in ipairs({
+  "SendBrowseQuery", "RequestMoreBrowseResults", "SendSearchQuery", "SendSellSearchQuery", "SearchForFavorites"
+}) do
   hooksecurefunc(C_AuctionHouse, fn, function() if not ours then lastForeign = GetTime() end end)
 end
 
