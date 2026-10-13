@@ -21,6 +21,7 @@ ADB.peers = {} -- trusted characters heard from: full name -> {ah = open AH hous
 local handlers = {}
 local queue, sending = {}, false
 local lastSent = {} -- name -> GetTime() of our last message to them
+local checking = {} -- lower case name -> true while waiting for an answer to /ahdb trust
 local partial = {} -- sender;type;id -> {parts, got, t}
 local pending = {} -- query id -> {peer, id, house, full, t}
 local asked = {} -- house:itemID[:f] -> GetTime()
@@ -67,8 +68,10 @@ function ADB:Send(to, kind, id, payload)
   end
 end
 
+-- sv.trusted: lower case name -> name (as typed, then as the server spells it once heard from)
 ADB:On("CHAT_MSG_ADDON", function(self, prefix, text, _, sender)
-  if prefix ~= PREFIX or not self.sv.trusted[sender] then return end
+  local lname = sender:lower()
+  if prefix ~= PREFIX or not self.sv.trusted[lname] then return end
   local kind, id, i, n, payload = text:match("^(%a);([^;]*);(%d+)/(%d+);(.*)$")
   if not kind then return end
   i, n = tonumber(i), tonumber(n)
@@ -89,7 +92,13 @@ ADB:On("CHAT_MSG_ADDON", function(self, prefix, text, _, sender)
     partial[key] = nil
     payload = table.concat(p.parts)
   end
-  self.peers[sender] = self.peers[sender] or {scans = {}}
+  if not self.peers[sender] then
+    -- they only send to characters they trust: both sides are set
+    self.peers[sender] = {scans = {}}
+    self.sv.trusted[lname] = sender
+    self:Print("linked with %s: prices are shared", sender)
+  end
+  checking[lname] = nil
   local fn = handlers[kind]
   if fn then fn(self, sender, id, payload) end
 end)
@@ -109,7 +118,7 @@ end
 -- ask: they answer with theirs (when we just logged in or trusted them)
 function ADB:Announce(ask, to)
   local p = presence(self)
-  for name in pairs(to and {[to] = true} or self.sv.trusted) do
+  for _, name in pairs(to and {to} or self.sv.trusted) do
     if name ~= self.myName then self:Send(name, ask and "I" or "i", "0", p) end
   end
 end
@@ -132,6 +141,10 @@ ADB:OnMessage("i", heard)
 -- An offline character: "No player named X is currently playing." for each message, hidden and the character
 -- forgotten until it tells us it's back.
 local function offline(self, name)
+  if checking[name:lower()] then
+    checking[name:lower()] = nil
+    self:Print("%s isn't online (or the name is misspelled)", name)
+  end
   self.peers[name] = nil
   for i = #queue, 1, -1 do if queue[i][1] == name then table.remove(queue, i) end end
   for qid, q in pairs(pending) do if q.peer == name then pending[qid] = nil end end
@@ -140,10 +153,15 @@ end
 
 ADB:Listen("LOGIN", function(self)
   self.myName = GetUnitName("player", true)
+  -- entries as name -> true: by lower case name
+  local trusted = {}
+  for k, v in pairs(self.sv.trusted) do trusted[k:lower()] = v == true and k or v end
+  self.sv.trusted = trusted
   C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
   ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, msg)
+    msg = msg:lower()
     for name, t in pairs(lastSent) do
-      if GetTime() - t < 10 and msg == ERR_CHAT_PLAYER_NOT_FOUND_S:format(name) then
+      if GetTime() - t < 10 and msg == ERR_CHAT_PLAYER_NOT_FOUND_S:format(name):lower() then
         offline(ADB, name)
         return true
       end
@@ -230,9 +248,20 @@ local function ago(self, ts) return ts and ts > 0 and (self:Age(ts) .. " ago") o
 ADB:AddCommand("trust", function(self, rest)
   local name = rest ~= "" and rest or (UnitIsPlayer("target") and GetUnitName("target", true))
   if name then
-    self.sv.trusted[name] = true
-    self:Print("%s trusted: prices are shared with it once it trusts you too (/ahdb trust %s on its side)", name,
-               self.myName)
+    local lname = name:lower()
+    if lname == self.myName:lower() then
+      self:Print("that's you: /ahdb trust <First Last> of a character of another account")
+      return
+    end
+    self.sv.trusted[lname] = name
+    self:Print("%s trusted: prices are shared once it trusts you too (/ahdb trust %s there)", name, self.myName)
+    -- the answer (or "not online") tells whether the link works
+    checking[lname] = true
+    C_Timer.After(15, function()
+      if not checking[lname] then return end
+      checking[lname] = nil
+      self:Print("no answer from %s: it needs /ahdb trust %s on its side too (same faction)", name, self.myName)
+    end)
     self:Announce(true, name)
     return
   end
@@ -241,7 +270,7 @@ ADB:AddCommand("trust", function(self, rest)
     return
   end
   self:Print("trusted characters (prices shared both ways):")
-  for n in pairs(self.sv.trusted) do
+  for _, n in pairs(self.sv.trusted) do
     local p = self.peers[n]
     if p then
       print(("  %s: online%s, last scans: Alliance %s, Horde %s, Neutral %s"):format(n, p.ah and
@@ -256,11 +285,13 @@ ADB:AddCommand("trust", function(self, rest)
 end, "trust [First Last] - share prices with that character of another account (both ways); no name: list")
 
 ADB:AddCommand("untrust", function(self, rest)
-  if not self.sv.trusted[rest] then
+  local name = self.sv.trusted[rest:lower()]
+  if not name then
     self:Print("%s isn't trusted (/ahdb trust lists them)", rest)
     return
   end
-  self.sv.trusted[rest] = nil
-  self.peers[rest] = nil
+  self.sv.trusted[rest:lower()] = nil
+  self.peers[name] = nil
+  rest = name
   self:Print("%s no longer trusted", rest)
 end, "untrust <First Last> - stop sharing prices with that character")
