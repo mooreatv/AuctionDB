@@ -3,9 +3,9 @@
 -- !ahdb in chat"). Part of a name that matches several items gets the list of their names ("which ...").
 -- With several AHDB users there, one answers: they tell each other (addon messages on the party / raid / guild
 -- channel, when joining a group, at login and after each scan) when they last scanned each AH. The one with the most
--- recent scan (not the one asking) answers right away; the others only after FALLBACK s if no answer came (it may
--- have left, or have no price for that item). Lists of partial matches come last (PARTIAL s): someone else may have
--- the exact item. The first answer in the channel answers the request.
+-- recent scan (not the one asking) answers right away, the others after a while if no answer came (it may have left,
+-- or have no price for that item). A list of partial matches doesn't stop an exact answer (someone else may have the
+-- item); when nobody has anything, the most recent scan says so.
 local _, ADB = ...
 
 local CHANNELS = {
@@ -22,10 +22,11 @@ local ANSWER = "AHDB " -- our answers start with it, which is also how we see ot
 local NONE = ANSWER .. "no " -- "no price" answers: not an answer for the others (they answer if they have prices)
 local AGAIN = 60 -- seconds before answering about the same item on the same channel again
 local GAP = 3 -- seconds between two of our answers
-local FALLBACK = 3 -- seconds the others wait for the AHDB user with the most recent scan to answer
-local PARTIAL = 6 -- seconds an AHDB user with only a list of partial matches waits for an exact answer
+-- seconds before answering (plus up to half a second at random), for the most recent scan or the others, with the
+-- item (exact) or a list of partial matches; then "no price" from the most recent scan if nobody answered
+local WAIT = {freshest = {exact = 0.2, partial = 0.8}, others = {exact = 2, partial = 3.5}}
+local NOTHING = 5
 local REQUEST_LIFE = 15 -- seconds an unanswered request can still get an answer
-local NOTHING = 9 -- seconds before the AHDB user with the most recent scan says it has no price, when no one answered
 local MIN_SEARCH = 3 -- characters for a search by part of the name ("!ahdb cloth")
 local MAX_MESSAGE = 255 -- chat message length
 
@@ -164,21 +165,24 @@ local function oldestRequest(channel)
   return list[1], list
 end
 
--- An AHDB answer in the channel answers the oldest request still open there, whatever the item it names; a "no
--- price" one only stops the others from saying it too.
-local function requestAnswered(channel, none)
+-- An AHDB answer in the channel answers the oldest request still open there, whatever the item it names: "price"
+-- closes it, a "list" of partial matches leaves it open for prices, "none" (no price) only stops the others from
+-- saying it too.
+local function requestAnswered(channel, kind)
   local req, list = oldestRequest(channel)
   if not req then return end
-  if none then
-    req.none = true
+  if kind == "price" then
+    table.remove(list, 1).priced = true
     return
   end
-  table.remove(list, 1).done = true
+  for _, r in ipairs(list) do
+    if not r[kind] then
+      r[kind] = true
+      return
+    end
+  end
 end
 
--- Answers the request unless someone else does first: key (channel:what) against answering the same twice in a
--- row, house whose most recent scan answers first, what for the debug log, exact: an item (else a list of partial
--- matches, answered last), build(send) makes the message.
 -- Sends the answer and checks it shows in the channel (a message the server refuses just doesn't).
 local function say(self, channel, msg, what)
   echo[channel] = msg
@@ -191,28 +195,22 @@ local function say(self, channel, msg, what)
   end)
 end
 
+-- Answers the request unless someone else does first: key (channel:what) against answering the same twice in a
+-- row, house whose most recent scan answers first, what for the debug log, exact: an item (else a list of partial
+-- matches), build(send) makes the message.
 local function respond(self, req, channel, sender, key, house, what, exact, build)
   if recent(key) then
     self:Debug("!ahdb from %s in %s: %s answered less than %ds ago", sender, channel, what, AGAIN)
     return
   end
-  local delay
-  if not exact then
-    delay = PARTIAL + math.random() * 2
-    self:Debug("!ahdb from %s in %s: %s, answering in %.1fs if no exact answer comes", sender, channel, what, delay)
-  else
-    local best = freshest(self, house, channel, sender)
-    if best == self.myName then
-      delay = 0.2 + math.random() * 0.3
-      self:Debug("!ahdb from %s in %s: %s, most recent %s AH scan: answering", sender, channel, what, house)
-    else
-      delay = FALLBACK + math.random() * 2
-      self:Debug("!ahdb from %s in %s: %s, %s has a more recent %s AH scan: answering in %.1fs if it doesn't", sender,
-                 channel, what, best, house, delay)
-    end
-  end
+  local best = freshest(self, house, channel, sender)
+  local delay = WAIT[best == self.myName and "freshest" or "others"][exact and "exact" or "partial"] + math.random() *
+                  0.5
+  self:Debug("!ahdb from %s in %s: %s, %s: answering in %.1fs%s", sender, channel, what,
+             best == self.myName and ("most recent " .. house .. " AH scan") or (best .. " has a more recent scan"),
+             delay, best == self.myName and "" or " if it doesn't")
   C_Timer.After(delay, function()
-    if req.done or recent(key) then
+    if req.priced or (not exact and req.list) or recent(key) then
       self:Debug("!ahdb: %s already answered in %s, not answering", what, channel)
       return
     end
@@ -237,7 +235,7 @@ local function noPrice(self, req, channel, sender, what, msg)
   self:Debug("!ahdb from %s in %s: %s: nothing here either, saying so in %ds if nobody answers", sender, channel, what,
              NOTHING)
   C_Timer.After(NOTHING, function()
-    if req.done or req.none then return end
+    if req.priced or req.list or req.none then return end
     local scan = lastScan(self, house)
     say(self, channel,
         ("%s (last %s AH scan %s)"):format(msg, house, scan > 0 and (self:Age(scan) .. " ago") or "never"), what)
@@ -248,12 +246,12 @@ local function onChat(self, channel, text, sender)
   if text:sub(1, #ANSWER) == ANSWER then
     if sender == self.myName then echo[channel] = nil end
     if text:sub(1, #NONE) == NONE then
-      requestAnswered(channel, true)
+      requestAnswered(channel, "none")
       return
     end
-    requestAnswered(channel)
     -- a list of matches only answers that request: an item asked for next still gets its prices
     local query = text:match('^' .. ANSWER .. 'which "(.-)":')
+    requestAnswered(channel, query and "list" or "price")
     local id = not query and tonumber(text:match("|Hitem:(%d+)"))
     if query then answered[channel .. ":q:" .. query:lower()] = GetTime() end
     if id then answered[channel .. ":" .. id] = GetTime() end
