@@ -91,6 +91,11 @@ local function which(query, matches)
     if link and #msg + #sep + #link <= room then
       msg = msg .. sep .. link
     elseif #msg + #sep + #m.name <= room then
+      if not names then
+        ADB:Debug("!ahdb: %s listed as a name: %s", m.name, link and ("link of %d characters, %d left"):format(#link,
+                                                                                                         room - #msg) or
+                    "no link")
+      end
       names = true
       msg = msg .. sep .. m.name
     else
