@@ -123,7 +123,7 @@ function ADB:Announce(ask, to)
   end
 end
 
-local function heard(self, sender, payload)
+local function heard(self, sender, _, payload)
   local ah, a, h, n = payload:match("^([^,]+),(%d+),(%d+),(%d+)$")
   if not ah then return end
   local peer = self.peers[sender]
@@ -133,7 +133,7 @@ local function heard(self, sender, payload)
 end
 
 ADB:OnMessage("I", function(self, sender, _, payload)
-  heard(self, sender, payload)
+  heard(self, sender, nil, payload)
   self:Announce(false, sender)
 end)
 ADB:OnMessage("i", heard)
