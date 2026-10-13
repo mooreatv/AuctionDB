@@ -257,6 +257,31 @@ function ADB:LastPrice(itemID, house)
   return p and point(p)
 end
 
+-- Typical prices over the last days (default 30): median of the days' lowest prices and of their medians, and how many
+-- days had prices. Computed from the daily history, kept until the next scan or merge.
+local typical = {}
+function ADB:Typical(itemID, house, days)
+  days = days or 30
+  local key = house .. ":" .. itemID .. ":" .. days
+  local c = typical[key]
+  if not c then
+    local from = GetServerTime() - days * DAY
+    local mins, meds = {}, {}
+    for _, p in ipairs(self:DailyHistory(itemID, house)) do
+      if p[1] >= from and p[3] > 0 then
+        mins[#mins + 1] = p[2]
+        meds[#meds + 1] = p[3]
+      end
+    end
+    c = {self:Median(mins), self:Median(meds), #meds}
+    typical[key] = c
+  end
+  return c[1], c[2], c[3]
+end
+
+ADB:Listen("SCAN_DATA", function() wipe(typical) end)
+ADB:Listen("HISTORY_MERGED", function() wipe(typical) end)
+
 -- Earlier versions kept the last 30 scans per item as tables: convert them (the next scan rolls the old ones up).
 ADB:Listen("LOGIN", function(self)
   for _, house in pairs(self.sv.houses) do

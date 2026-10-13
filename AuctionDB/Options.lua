@@ -31,6 +31,11 @@ local CHECKBOXES = {
     "answerLive", "Answer live AH searches",
     "While this character is at an open AH, search items trusted characters ask about (Live button of the price " ..
       "window, /ahdb live) and send them the current prices."
+  }, {
+    "chatAnswers", "Answer !ahdb in guild, party and raid chat",
+    "When someone writes \"!ahdb <item>\" (link, itemID or name) in guild, officer, party, raid or instance chat, " ..
+      "answer there with the item's last AH prices, 30 day min - median and vendor price. With several AHDB users " ..
+      "there, only one answers."
   }, {"debug", "Debug output", "Print detailed messages to the chat window (always kept in /ahdb bug)."}
 }
 
