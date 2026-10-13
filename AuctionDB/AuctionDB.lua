@@ -16,6 +16,7 @@ local addonName, ADB = ...
 _G.AuctionDB = ADB
 
 ADB.prefix = "|cFF99E5FFAHDB:|r "
+ADB.logName, ADB.slash = "AHDB", "/ahdb" -- for Bug.lua
 -- the packager substitutes the toc's version with the release tag; a source checkout still has the placeholder
 ADB.version = C_AddOns.GetAddOnMetadata(addonName, "Version") or "?"
 if ADB.version:find("^@") then ADB.version = "dev" end
