@@ -43,6 +43,7 @@ read_globals = {
   "IsAltKeyDown",
   "IsShiftKeyDown",
   "MerchantFrame",
+  "Minimap",
   "NORMAL_FONT_COLOR",
   "RED_FONT_COLOR",
   "tinsert",

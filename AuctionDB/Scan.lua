@@ -14,21 +14,45 @@ ADB.scanState = nil -- nil, "waiting" (requested), "reading"
 -- is kept in a console variable registered by the addon, which lives as long as the game client.
 local LAST_SCAN_CVAR = "ahdbLastScan"
 
-ADB:Listen("LOGIN", function(self)
-  if not C_CVar.GetCVar(LAST_SCAN_CVAR) then C_CVar.RegisterCVar(LAST_SCAN_CVAR, "0") end
-  self:Debug("last scan in this game session: %s", C_CVar.GetCVar(LAST_SCAN_CVAR))
-end)
-
 function ADB:ScanCooldownLeft()
   local last = tonumber(C_CVar.GetCVar(LAST_SCAN_CVAR)) or 0
   return math.max(0, SCAN_COOLDOWN - (GetServerTime() - last))
 end
 
+-- "Full scan ready" message once the 15 min are up, when not at the AH (crafting, questing...).
+local readyGen = 0
+function ADB:ScheduleReady()
+  readyGen = readyGen + 1
+  local gen = readyGen
+  local left = self:ScanCooldownLeft()
+  if left == 0 then return end
+  C_Timer.After(left + 1, function()
+    if gen ~= readyGen or self:ScanCooldownLeft() > 0 then return end
+    if self.db.scanReadyAlert and not self.ahOpen then
+      self:Print("|cFF00FF00full AH scan ready|r: open the auction house to scan")
+    end
+  end)
+end
+
+-- "next full scan in 3 min 25 s", "full scan ready", ...
+function ADB:ScanStatusText()
+  if self.scanState then return "full scan in progress" end
+  local left = self:ScanCooldownLeft()
+  if left == 0 then return "full scan ready" end
+  return ("next full scan in %d min %02d s"):format(math.floor(left / 60), left % 60)
+end
+
+ADB:Listen("LOGIN", function(self)
+  if not C_CVar.GetCVar(LAST_SCAN_CVAR) then C_CVar.RegisterCVar(LAST_SCAN_CVAR, "0") end
+  self:Debug("last scan in this game session: %s", C_CVar.GetCVar(LAST_SCAN_CVAR))
+  self:ScheduleReady()
+end)
+
 function ADB:CanScan() return self.ahOpen and not self.scanState and self:ScanCooldownLeft() == 0 end
 
 function ADB:Scan(force)
   if not self.ahOpen then
-    self:Print("open the Auction House first")
+    self:Print("open the Auction House first (%s)", self:ScanStatusText())
     return
   end
   if self.scanState then
@@ -43,6 +67,7 @@ function ADB:Scan(force)
   end
   local previous = C_CVar.GetCVar(LAST_SCAN_CVAR)
   C_CVar.SetCVar(LAST_SCAN_CVAR, tostring(GetServerTime()))
+  self:ScheduleReady()
   self.scanHouse = self:House(self.house)
   self.scanHouseName = self.house
   self.scanStart = GetTime()
@@ -59,6 +84,7 @@ function ADB:Scan(force)
       self.scanFailures = (self.scanFailures or 0) + 1
       if self.scanFailures == 1 then
         C_CVar.SetCVar(LAST_SCAN_CVAR, previous)
+        self:ScheduleReady()
         self:Print("no scan data after %d s (throttled by the server?), you can try again now", WAIT_TIMEOUT)
       else
         self.scanFailures = 0
@@ -227,5 +253,7 @@ ADB:Listen("AH_SHOW", function(self)
   self.scanButton = b
 end)
 
+ADB:AddCommand("next", function(self) self:Print(self:ScanStatusText()) end,
+               "next - time left before the next full AH scan (also in the minimap button's tooltip)")
 ADB:AddCommand("scan", function(self, rest) self:Scan(rest == "force") end,
                "scan [force] - full AH scan (AH open, once per 15 min; force: ignore AHDB's timer)")

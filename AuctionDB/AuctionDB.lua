@@ -27,7 +27,10 @@ ADB.defaults = {
   keepScans = 3, -- full scans kept per auction house when recording
   tooltip = true,
   askPeers = true, -- ask trusted characters (other accounts) for prices (Comm.lua)
-  answerLive = true -- do live AH searches asked by trusted characters (Live.lua)
+  answerLive = true, -- do live AH searches asked by trusted characters (Live.lua)
+  scanReadyAlert = true, -- chat message when the next full scan is possible, if not at the AH
+  minimapButton = true,
+  minimapAngle = 200 -- degrees, position of the minimap button around the minimap
 }
 
 -- Everything we print (debug included, shown or not) is also kept: last MAX_LOG lines, saved across reloads (see Bug.lua).
