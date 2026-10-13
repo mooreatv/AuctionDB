@@ -158,7 +158,7 @@ function ADB:ReadReplicate()
   step()
 end
 
--- Per item min / quantity weighted median unit buyout and total quantity, appended to the item's history.
+-- Per item min / quantity weighted median unit buyout and total quantity, added to the item's history (History.lua).
 function ADB:RecordHistory(e)
   local byItem = {}
   for k = 1, e.n do
@@ -173,7 +173,6 @@ function ADB:RecordHistory(e)
   end
   local ts = GetServerTime()
   local nItems = 0
-  local keep = self.db.historySize
   for id, t in pairs(byItem) do
     nItems = nItems + 1
     local minU, median = 0, 0
@@ -191,11 +190,9 @@ function ADB:RecordHistory(e)
         end
       end
     end
-    local h = self.scanHouse.items[id] or {}
-    self.scanHouse.items[id] = h
-    h[#h + 1] = {ts, minU, median, t.qty}
-    while #h > keep do table.remove(h, 1) end
+    self:AddHistoryPoint(self.scanHouse, id, ts, minU, median, t.qty)
   end
+  self:CompactHistory(self.scanHouse, ts)
   local scans = self.scanHouse.scans
   scans[#scans + 1] = {ts, e.n, nItems}
   while #scans > 100 do table.remove(scans, 1) end

@@ -25,8 +25,7 @@ ADB.defaults = {
   sellWarning = true, -- warn on the AH sell pages when the price nets less than a vendor pays
   recordScans = false, -- keep every auction of the last scans (AHDBapp format, see Record.lua)
   keepScans = 3, -- full scans kept per auction house when recording
-  tooltip = true,
-  historySize = 30 -- scans kept per item
+  tooltip = true
 }
 
 -- Everything we print (debug included, shown or not) is also kept: last MAX_LOG lines, saved across reloads (see Bug.lua).
@@ -95,9 +94,10 @@ ADB:On("ADDON_LOADED", function(self, name)
   local s = sv.settings or {}
   sv.settings = s
   for k, v in pairs(self.defaults) do if s[k] == nil then s[k] = v end end
+  s.historySize = nil -- replaced by the 2 days of scans + 180 days of daily prices (History.lua)
   self.db = s
-  -- per auction house ("Alliance", "Horde", "Neutral"): items = itemID -> list of {ts, minUnitBuyout,
-  -- medianUnitBuyout, quantity} oldest first, scans = list of {ts, entries, items}
+  -- per auction house ("Alliance", "Horde", "Neutral"): items and daily = itemID -> price history (see History.lua),
+  -- scans = list of {ts, entries, items}
   sv.houses = sv.houses or {}
   -- itemIDs vendors refuse although the item data has a sell price (learned at merchants, see Vendor.lua)
   sv.unsellable = sv.unsellable or {[6947] = true} -- Instant Poison
@@ -117,7 +117,7 @@ end)
 function ADB:House(name)
   local h = self.sv.houses[name]
   if not h then
-    h = {items = {}, scans = {}}
+    h = {items = {}, daily = {}, scans = {}}
     self.sv.houses[name] = h
   end
   return h
