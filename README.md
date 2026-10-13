@@ -30,8 +30,8 @@ character parked at the AH, another one out in the world):
   and add them to your price history.
 - **Live** button of the price window (or `/ahdb live <item>`): a trusted character at an open AH searches the item
   and sends its current min / median price and quantity listed.
-- Only between characters of the same faction (whispers don't cross factions); the neutral AH prices are
-  shared either way. `/ahdb trust` lists who's trusted and online.
+- Only between characters of the same faction (whispers don't cross factions).
+  `/ahdb trust` lists who's trusted and online.
 - Out of the game, [ahdbmerge](https://github.com/mooreatv/AHDBapp#merging-price-history-between-your-wow-accounts-wow-forever)
   merges the price history of all the accounts of a WoW install.
 
