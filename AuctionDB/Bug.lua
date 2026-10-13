@@ -1,10 +1,15 @@
--- /ahdb bug: a window with the recent AHDB output (timestamped) in a selectable edit box, to copy/paste into a report.
-local _, ADB = ...
+-- /<addon> bug: a window with the recent output of the addon (timestamped) in a selectable edit box, to copy/paste
+-- into a report. Same file in each addon, keep the copies identical: the addon table provides
+--   log     = list of lines (may be replaced by a new table once the saved variables are loaded)
+--   logName = short name for the title and help, e.g. "AHDB"
+--   slash   = slash command, e.g. "/ahdb"
+-- and AddCommand / Print; this adds the bug and clearlog commands and A:ShowBug().
+local addonName, A = ...
 
 local frame
 
 local function build()
-  frame = CreateFrame("Frame", "AuctionDBBugFrame", UIParent, "BackdropTemplate")
+  frame = CreateFrame("Frame", addonName .. "BugFrame", UIParent, "BackdropTemplate")
   frame:SetSize(640, 400)
   frame:SetPoint("CENTER")
   frame:SetFrameStrata("DIALOG")
@@ -21,16 +26,16 @@ local function build()
   frame:RegisterForDrag("LeftButton")
   frame:SetScript("OnDragStart", frame.StartMoving)
   frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
-  tinsert(UISpecialFrames, "AuctionDBBugFrame") -- Escape closes it
+  tinsert(UISpecialFrames, addonName .. "BugFrame") -- Escape closes it
 
   local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   title:SetPoint("TOP", 0, -16)
-  title:SetText("AHDB log: Ctrl+A then Ctrl+C to copy, Escape to close")
+  title:SetText(A.logName .. " log: Ctrl+A or click + Shift-click to select, Ctrl+C to copy, Escape to close")
 
   local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
   close:SetPoint("TOPRIGHT", -6, -6)
 
-  local scroll = CreateFrame("ScrollFrame", "AuctionDBBugScroll", frame, "UIPanelScrollFrameTemplate")
+  local scroll = CreateFrame("ScrollFrame", addonName .. "BugScroll", frame, "UIPanelScrollFrameTemplate")
   scroll:SetPoint("TOPLEFT", 20, -40)
   scroll:SetPoint("BOTTOMRIGHT", -40, 20)
 
@@ -40,22 +45,56 @@ local function build()
   edit:SetFontObject("ChatFontNormal")
   edit:SetWidth(570)
   edit:SetScript("OnEscapePressed", function() frame:Hide() end)
+  -- Keep the cursor in view: drag-selecting past the top/bottom edge scrolls. Done in OnUpdate as
+  -- the scroll range lags the edit box height by a frame after SetText.
+  edit:SetScript("OnCursorChanged", function(self, _, y, _, h)
+    self.cursorTop, self.cursorHeight = -y, h
+    self.followCursor = true
+    if self.pendingAnchor then self.anchor, self.pendingAnchor = self:GetCursorPosition(), false end
+  end)
+  edit:SetScript("OnUpdate", function(self)
+    if not self.followCursor then return end
+    self.followCursor = false
+    local pos, view = scroll:GetVerticalScroll(), scroll:GetHeight()
+    local top, bottom = self.cursorTop, self.cursorTop + self.cursorHeight
+    if top < pos then
+      scroll:SetVerticalScroll(math.max(top, 0))
+    elseif bottom > pos + view then
+      scroll:SetVerticalScroll(math.min(bottom - view, scroll:GetVerticalScrollRange()))
+    end
+  end)
+  -- Shift-click extends the selection from the last plain click (or drag start).
+  edit:SetScript("OnMouseDown", function(self)
+    self.extend = IsShiftKeyDown() and self.anchor
+    self.pendingAnchor = not self.extend
+  end)
+  edit:SetScript("OnMouseUp", function(self)
+    local cur = self:GetCursorPosition()
+    if self.pendingAnchor then -- click without cursor move
+      self.anchor, self.pendingAnchor = cur, false
+    end
+    if self.extend then
+      self:HighlightText(math.min(self.anchor, cur), math.max(self.anchor, cur))
+      self.extend = false
+    end
+  end)
   scroll:SetScrollChild(edit)
   frame.edit = edit
 end
 
-function ADB:ShowBug()
+function A:ShowBug()
   if not frame then build() end
-  local text = table.concat(self.log, "\n")
-  frame.edit:SetText(text)
+  local edit = frame.edit
+  edit:SetText(table.concat(self.log, "\n")) -- cursor at the end: opens scrolled to the newest lines
+  edit.anchor = nil
   frame:Show()
-  frame.edit:SetFocus()
-  frame.edit:HighlightText()
+  edit:SetFocus()
+  edit:HighlightText()
 end
 
-ADB:AddCommand("bug", function(self) self:ShowBug() end,
-               "bug - show the last 300 AHDB messages (with time) in a copyable window")
-ADB:AddCommand("clearlog", function(self)
+A:AddCommand("bug", function(self) self:ShowBug() end,
+             "bug - show the recent " .. A.logName .. " messages (with time) in a copyable window")
+A:AddCommand("clearlog", function(self)
   wipe(self.log) -- same table as the saved one, so it stays cleared across reloads
   self:Print("log cleared")
-end, "clearlog - empty the log shown by /ahdb bug (e.g. before reproducing a problem)")
+end, "clearlog - empty the log shown by " .. A.slash .. " bug (e.g. before reproducing a problem)")
