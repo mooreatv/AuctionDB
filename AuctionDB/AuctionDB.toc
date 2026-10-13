@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: Auction House DataBase (AHDB)
-## Notes: Full AH scans, price history, vendor and AH prices in tooltips, warns before selling below vendor price (|cFF99E5FF/ahdb|r)
+## Notes: Full AH scans, price history graphs (Alt-click any item), vendor and AH prices in tooltips, warns before selling below vendor price (|cFF99E5FF/ahdb|r)
 ## Notes: WoW Forever edition
 ## Author: MooreaTV moorea@ymail.com
 ## Version: @project-version@
@@ -16,8 +16,10 @@
 ## IconTexture: Interface\AddOns\AuctionDB\AuctionDB
 AuctionDB.lua
 Scan.lua
+History.lua
 Record.lua
 Tooltip.lua
+Graph.lua
 Vendor.lua
 Sell.lua
 Options.lua
