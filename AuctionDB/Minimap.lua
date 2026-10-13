@@ -32,11 +32,11 @@ local function build()
   local bg = b:CreateTexture(nil, "BACKGROUND")
   bg:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
   bg:SetSize(20, 20)
-  bg:SetPoint("CENTER")
+  bg:SetPoint("CENTER", 1, 0) -- the ring (border) is a bit right of the button center
   local icon = b:CreateTexture(nil, "ARTWORK")
   icon:SetTexture("Interface\\AddOns\\AuctionDB\\AuctionDB")
   icon:SetSize(20, 20)
-  icon:SetPoint("CENTER")
+  icon:SetPoint("CENTER", 1, 0)
   icon:SetMask("Interface\\CharacterFrame\\TempPortraitAlphaMask") -- round, the square corners hidden
   local border = b:CreateTexture(nil, "OVERLAY")
   border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
