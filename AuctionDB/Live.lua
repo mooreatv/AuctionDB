@@ -31,7 +31,7 @@ function ADB:AskLive(id)
   end
   local qid = self:NewMessageID()
   asking[qid] = {peer = peer, id = id, t = GetTime()}
-  self:Send(peer, "L", qid, tostring(id))
+  self:Send(peer, "L", qid, tostring(id), "live search of item " .. id)
   self:Print("asking %s for a live search of %s at the %s AH...", peer, select(2, C_Item.GetItemInfo(id)) or id, house)
 end
 
@@ -65,7 +65,8 @@ local function finish(self, units, qty)
   local ts = GetServerTime()
   self:AddHistoryPoint(self:House(c.house), c.id, ts, minU, median, qty)
   self:Debug("live search of %d for %s: min %d, median %d, %d listed", c.id, c.peer, minU, median, qty)
-  self:Send(c.peer, "R", c.qid, ("%s,%d,%d,%d,%d"):format(c.house, ts, minU, median, qty))
+  self:Send(c.peer, "R", c.qid, ("%s,%d,%d,%d,%d"):format(c.house, ts, minU, median, qty),
+            "live result for item " .. c.id)
   self:Fire("HISTORY_MERGED", c.id, c.house, self.myName, 1)
 end
 
@@ -114,7 +115,7 @@ ADB:OnMessage("L", function(self, sender, qid, payload)
     why = "AH busy, try again in a few seconds"
   end
   if why then
-    self:Send(sender, "B", qid, why)
+    self:Send(sender, "B", qid, why, "no live search: " .. why)
     return
   end
   local c = {peer = sender, qid = qid, id = id, key = C_AuctionHouse.MakeItemKey(id), house = self.house}
@@ -129,7 +130,7 @@ ADB:OnMessage("L", function(self, sender, qid, payload)
       itemResults(self, c.key)
     else
       current = nil
-      self:Send(sender, "B", qid, "no answer from the AH (none listed?)")
+      self:Send(sender, "B", qid, "no answer from the AH (none listed?)", "no live search result")
     end
   end)
 end)
@@ -150,7 +151,7 @@ end
 
 ADB:Listen("AH_CLOSED", function(self)
   if not current then return end
-  self:Send(current.peer, "B", current.qid, "AH closed")
+  self:Send(current.peer, "B", current.qid, "AH closed", "live search stopped: AH closed")
   current = nil
 end)
 

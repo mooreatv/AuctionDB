@@ -26,8 +26,8 @@ Saved data is per WoW account. To use the prices one account scanned on another 
 character parked at the AH, another one out in the world):
 
 - `/ahdb trust <First Last>` (or target the character and `/ahdb trust`) on both sides, then:
-- Item tooltips and the price window ask an online trusted character for prices newer than yours ("asking ...")
-  and add them to your price history.
+- Item tooltips tell when an online trusted character has newer prices ("AH price 3h old, Alt: ask Wa"): hold Alt
+  to get them. The price window gets them by itself. They're added to your price history.
 - **Live** button of the price window (or `/ahdb live <item>`): a trusted character at an open AH searches the item
   and sends its current min / median price and quantity listed.
 - Only between characters of the same faction (whispers don't cross factions).

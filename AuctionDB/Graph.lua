@@ -126,7 +126,7 @@ local function build()
   for i, house in ipairs(HOUSES) do
     local b = button(frame, house, 80, function()
       frame.house = house
-      ADB:AskHistory(frame.itemID, house, true)
+      ADB:AskHistory(frame.itemID, {house}, true)
       draw()
     end)
     b:SetPoint("TOPLEFT", 20 + (i - 1) * 82, -68)
@@ -384,7 +384,7 @@ function ADB:ShowItem(itemID)
   end
   frame.house = house
   if frame.itemID ~= frame.fromItem then frame.from, frame.fromItem = {}, itemID end
-  self:AskHistory(itemID, house, true)
+  self:AskHistory(itemID, {house}, true)
   frame:Show()
   draw()
   self:LoadItems({[itemID] = true}, function() if frame.itemID == itemID and frame:IsShown() then draw() end end, 5)

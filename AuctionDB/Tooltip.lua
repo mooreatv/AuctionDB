@@ -40,18 +40,35 @@ local function onItemTooltip(tt, data)
                        1)
       if median ~= minU then tt:AddDoubleLine(label .. " median", self:Money(median), 0.6, 0.9, 1, 1, 1, 1) end
     end
-    -- newer prices from a trusted character of another account (Comm.lua)
-    local peer = self:AskHistory(itemID, house) or self:Asking(itemID, house)
-    if peer then tt:AddLine(("%s: asking %s..."):format(label, peer), 0.5, 0.5, 0.5) end
+  end
+  -- newer prices from a trusted character of another account (Comm.lua): asked while Alt is held
+  local asking
+  for _, house in ipairs(houses) do asking = asking or self:Asking(itemID, house) end
+  local peer, list = self:AskTarget(itemID, houses)
+  if peer and IsAltKeyDown() then asking = self:AskHistory(itemID, houses) end
+  if asking then
+    tt:AddLine(("AH: asking %s..."):format(asking:match("^%S+")), 0.5, 0.5, 0.5)
+  elseif peer then
+    local p = self:LastPrice(itemID, list[1])
+    tt:AddLine(("%s, Alt: ask %s"):format(p and ("AH price " .. self:Age(p[1]) .. " old") or "No AH price",
+                                          peer:match("^%S+")), 0.5, 0.5, 0.5)
   end
 end
 
 TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, onItemTooltip)
 
+-- Rebuilds the item tooltip (any item, or only that one).
+local function refresh(id)
+  local _, _, shown = GameTooltip:GetItem()
+  if GameTooltip:IsShown() and shown and (not id or shown == id) then GameTooltip:RefreshData() end
+end
+
 -- The answer came: show it if the tooltip is still on that item.
-ADB:Listen("HISTORY_MERGED", function(_, id)
-  if GameTooltip:IsShown() and select(3, GameTooltip:GetItem()) == id then GameTooltip:RefreshData() end
-end)
+ADB:Listen("HISTORY_MERGED", function(_, id) refresh(id) end)
+
+-- Alt pressed over an item tooltip: ask (see above).
+ADB:On("MODIFIER_STATE_CHANGED",
+       function(_, key, down) if down == 1 and (key == "LALT" or key == "RALT") then refresh() end end)
 
 -- /ahdb price <itemID|link>: saved history (last scans, else last days) and the graph window, works away from the AH.
 ADB:AddCommand("price", function(self, rest)

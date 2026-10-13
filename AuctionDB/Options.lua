@@ -19,8 +19,8 @@ local CHECKBOXES = {
       "stack and stack size vendor prices too (BVP then shows the vendor lines)."
   }, {
     "askPeers", "Ask trusted characters for prices",
-    "Item tooltips and the price window ask an online trusted character of another account (/ahdb trust, on both " ..
-      "sides) for newer prices than yours, added to your price history."
+    "Get newer prices than yours from an online trusted character of another account (/ahdb trust, on both " ..
+      "sides): item tooltips while you hold Alt, the price window by itself. Added to your price history."
   }, {
     "answerLive", "Answer live AH searches",
     "While this character is at an open AH, search items trusted characters ask about (Live button of the price " ..

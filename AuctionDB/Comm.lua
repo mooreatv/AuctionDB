@@ -3,8 +3,9 @@
 -- are listened to and answered: whisper senders are set by the server, so no signing is needed.
 -- Message: "<type>;<id>;<part>/<parts>;<payload>", payloads longer than PART bytes are split in parts.
 -- - I / i presence (I asks for one back): "<open AH house or ->,<last scan ts of Alliance>,<Horde>,<Neutral>"
--- - Q history query "<itemID>,<house>,<since ts>,<daily 0/1>": scans newer than since (and the daily entries),
---   answered with H "<recent>/<daily>" (wire format, History.lua), merged into our history
+-- - Q history query "<itemID>,<house>:<since ts>:<daily 0/1>,...": per house the scans newer than since (and the
+--   daily entries), answered with H "<house>:<recent>/<daily>;..." (wire format, History.lua), merged into our history.
+--   Tooltips ask only while Alt is held; an item isn't asked about again until that character scans the house again.
 -- - L live AH search (Live.lua)
 local _, ADB = ...
 
@@ -12,8 +13,6 @@ local PREFIX = "AHDB"
 local SPACING = 0.25 -- seconds between our messages (addon messages are throttled)
 local PART = 230 -- payload bytes per message (255 max)
 local TIMEOUT = 60 -- seconds before giving up on an answer
-local ASK_AGAIN = 600 -- seconds before asking again about the same item (tooltip)
-local MAX_PENDING = 3 -- tooltip queries waiting for an answer
 local HOUSES = {"Alliance", "Horde", "Neutral"}
 
 ADB.peers = {} -- trusted characters heard from: full name -> {ah = open AH house, scans = {house -> last scan ts}}
@@ -23,8 +22,8 @@ local queue, sending = {}, false
 local lastSent = {} -- name -> GetTime() of our last message to them
 local checking = {} -- lower case name -> true while waiting for an answer to /ahdb trust
 local partial = {} -- sender;type;id -> {parts, got, t}
-local pending = {} -- query id -> {peer, id, house, full, t}
-local asked = {} -- house:itemID[:f] -> GetTime()
+local pending = {} -- query id -> {peer, id, houses, keys, t}
+local asked = {} -- peer:house:itemID[:f] -> that character's scan of the house we asked about
 local seq = math.random(1000)
 
 function ADB:OnMessage(kind, fn) handlers[kind] = fn end
@@ -56,12 +55,13 @@ local function pump()
   C_Timer.After(SPACING, pump)
 end
 
-function ADB:Send(to, kind, id, payload)
+-- what: for the debug log
+function ADB:Send(to, kind, id, payload, what)
   local n = math.max(1, math.ceil(#payload / PART))
   for i = 1, n do
     queue[#queue + 1] = {to, ("%s;%s;%d/%d;%s"):format(kind, id, i, n, payload:sub((i - 1) * PART + 1, i * PART))}
   end
-  self:Debug("to %s: %s %s (%d bytes, %d parts)", to, kind, id, #payload, n)
+  self:Debug("to %s: %s%s", to, what or kind, n > 1 and (" (%d messages)"):format(n) or "")
   if not sending then
     sending = true
     pump()
@@ -119,7 +119,7 @@ end
 function ADB:Announce(ask, to)
   local p = presence(self)
   for _, name in pairs(to and {to} or self.sv.trusted) do
-    if name ~= self.myName then self:Send(name, ask and "I" or "i", "0", p) end
+    if name ~= self.myName then self:Send(name, ask and "I" or "i", "0", p, "presence " .. p) end
   end
 end
 
@@ -185,60 +185,92 @@ function ADB:BestPeer(house, ts)
   return best
 end
 
--- Name of the character we're waiting on for that item's history, if any.
+-- Name of the character we're waiting on for that item's history at that house, if any.
 function ADB:Asking(id, house)
   local now = GetTime()
   for qid, q in pairs(pending) do
     if now - q.t > TIMEOUT then
       pending[qid] = nil
-    elseif q.id == id and q.house == house then
-      return q.peer
+      for _, k in ipairs(q.keys) do asked[k] = nil end -- no answer: can be asked again
+    elseif q.id == id then
+      for _, h in ipairs(q.houses) do if h == house then return q.peer end end
     end
   end
 end
 
--- Asks the trusted character with the most recent scan of that house for the item's history newer than ours (full:
--- all of it, for the graph). Returns who was asked, nil when no one (or asked recently).
-function ADB:AskHistory(id, house, full)
-  if not self.db.askPeers or not next(self.peers) then return end
-  local key = house .. ":" .. id .. (full and ":f" or "")
-  local now = GetTime()
-  if asked[key] and now - asked[key] < (full and TIMEOUT or ASK_AGAIN) then return end
-  local last = self:LastPrice(id, house)
-  local peer = self:BestPeer(house, not full and last and last[1] or nil)
-  if not peer then return end
-  if not full then
-    local n = 0
-    for _, q in pairs(pending) do if not q.full and now - q.t < TIMEOUT then n = n + 1 end end
-    if n >= MAX_PENDING then return end
+local function askKey(peer, house, id, full) return peer .. ":" .. house .. ":" .. id .. (full and ":f" or "") end
+
+-- The trusted character to ask about the item and at which of these houses: where it scanned more recently than our
+-- prices of the item (full: any of its scans, for the graph's whole history) and wasn't asked since. nil if none.
+function ADB:AskTarget(id, houses, full)
+  if not self.db.askPeers then return end
+  local best, list
+  for name, p in pairs(self.peers) do
+    local l = {}
+    for _, house in ipairs(houses) do
+      local scan = p.scans[house] or 0
+      local last = self:LastPrice(id, house)
+      if scan > 0 and (full or scan > (last and last[1] or 0)) and asked[askKey(name, house, id, full)] ~= scan and
+        not self:Asking(id, house) then l[#l + 1] = house end
+    end
+    if #l > 0 and (not list or #l > #list) then best, list = name, l end
   end
-  asked[key] = now
-  local since = (full or not last) and self:RecentStart() - 1 or last[1]
+  return best, list
+end
+
+-- Asks AskTarget's character for the item's history newer than ours (full: also the daily history, for the graph).
+-- Returns who was asked, nil when there's no one to ask.
+function ADB:AskHistory(id, houses, full)
+  local peer, list = self:AskTarget(id, houses, full)
+  if not peer then return end
+  local parts, keys = {}, {}
+  for i, house in ipairs(list) do
+    keys[i] = askKey(peer, house, id, full)
+    asked[keys[i]] = self.peers[peer].scans[house]
+    local last = self:LastPrice(id, house)
+    local since = (full or not last) and self:RecentStart() - 1 or last[1]
+    parts[i] = ("%s:%d:%d"):format(house, since, (full or not last) and 1 or 0)
+  end
   local qid = self:NewMessageID()
-  pending[qid] = {peer = peer, id = id, house = house, full = full, t = now}
-  self:Send(peer, "Q", qid, ("%d,%s,%d,%d"):format(id, house, since, (full or not last) and 1 or 0))
+  pending[qid] = {peer = peer, id = id, houses = list, keys = keys, t = GetTime()}
+  self:Send(peer, "Q", qid, id .. "," .. table.concat(parts, ","),
+            ("ask item %d at %s%s"):format(id, table.concat(list, ", "), full and " (all)" or ""))
   return peer
 end
 
+local function counts(list)
+  local t = {}
+  for _, c in ipairs(list) do t[#t + 1] = c[2] > 0 and (c[1] .. " " .. c[2]) or (c[1] .. " nothing newer") end
+  return table.concat(t, ", ")
+end
+
 ADB:OnMessage("Q", function(self, sender, qid, payload)
-  local id, house, since, daily = payload:match("^(%d+),(%a+),(%d+),([01])$")
+  local id, rest = payload:match("^(%d+),(.*)$")
   if not id then return end
-  id, since = tonumber(id), tonumber(since)
-  local recent = {}
-  for _, p in ipairs(self:RecentHistory(id, house)) do if p[1] > since then recent[#recent + 1] = p end end
-  local days = daily == "1" and self:StoredDaily(id, house) or {}
-  self:Send(sender, "H", qid, self:ToWire(recent) .. "/" .. self:ToWire(days))
+  id = tonumber(id)
+  local parts, n = {}, {}
+  for house, since, daily in rest:gmatch("(%a+):(%d+):([01])") do
+    since = tonumber(since)
+    local recent = {}
+    for _, p in ipairs(self:RecentHistory(id, house)) do if p[1] > since then recent[#recent + 1] = p end end
+    local days = daily == "1" and self:StoredDaily(id, house) or {}
+    parts[#parts + 1] = house .. ":" .. self:ToWire(recent) .. "/" .. self:ToWire(days)
+    n[#n + 1] = {house, #recent + #days}
+  end
+  self:Send(sender, "H", qid, table.concat(parts, ";"), ("item %d: %s"):format(id, counts(n)))
 end)
 
 ADB:OnMessage("H", function(self, sender, qid, payload)
   local q = pending[qid]
   if not q or q.peer ~= sender then return end
   pending[qid] = nil
-  local recent, daily = payload:match("^([^/]*)/(.*)$")
-  if not recent then return end
-  local n = self:MergeHistory(self:House(q.house), q.id, self:FromWire(recent), self:FromWire(daily))
-  self:Debug("%s: %d new for item %d at the %s AH", sender, n, q.id, q.house)
-  self:Fire("HISTORY_MERGED", q.id, q.house, sender, n)
+  local n = {}
+  for house, recent, daily in payload:gmatch("(%a+):([^/;]*)/([^;]*)") do
+    local added = self:MergeHistory(self:House(house), q.id, self:FromWire(recent), self:FromWire(daily))
+    n[#n + 1] = {house, added}
+    self:Fire("HISTORY_MERGED", q.id, house, sender, added)
+  end
+  self:Debug("from %s: item %d: %s", sender, q.id, counts(n))
 end)
 
 -- Commands
