@@ -126,6 +126,7 @@ local function build()
   for i, house in ipairs(HOUSES) do
     local b = button(frame, house, 80, function()
       frame.house = house
+      ADB:AskHistory(frame.itemID, {house}, true)
       draw()
     end)
     b:SetPoint("TOPLEFT", 20 + (i - 1) * 82, -68)
@@ -141,6 +142,19 @@ local function build()
     b:SetPoint("TOPRIGHT", -20 - (#RANGES - i) * 52, -68)
     frame.rangeButtons[i] = b
   end
+  -- current prices from a trusted character at an open AH (Live.lua)
+  frame.live = button(frame, "Live", 50, function() ADB:AskLive(frame.itemID) end)
+  frame.live:SetPoint("TOPRIGHT", -20 - #RANGES * 52 - 8, -68)
+  frame.live:SetMotionScriptsWhileDisabled(true)
+  frame.live:SetScript("OnEnter", function(b)
+    local peer, house = ADB:LivePeer()
+    GameTooltip:SetOwner(b, "ANCHOR_TOP")
+    GameTooltip:SetText("Live AH search")
+    GameTooltip:AddLine(peer and ("Current prices from %s, at the %s AH now."):format(peer, house) or
+                          "Needs a trusted character of another account at an open AH (/ahdb trust).", 1, 1, 1, true)
+    GameTooltip:Show()
+  end)
+  frame.live:SetScript("OnLeave", GameTooltip_Hide)
 
   local plot = CreateFrame("Frame", nil, frame)
   plot:SetSize(W, H)
@@ -193,6 +207,8 @@ local function build()
 
   frame.stats = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   frame.stats:SetPoint("BOTTOMLEFT", 22, 20)
+  frame.share = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  frame.share:SetPoint("BOTTOMRIGHT", -22, 21)
 end
 
 local function lowest(list)
@@ -220,9 +236,13 @@ draw = function()
                                                                        self:Money(last[2]), self:Money(last[3]), last[4])
   end
   frame.info:SetText(info)
+  local asking = self:Asking(id, house)
+  frame.share:SetText(asking and ("asking " .. asking .. "...") or
+                        (frame.from[house] and ("with prices from " .. frame.from[house]) or ""))
+  frame.live:SetEnabled(self:LivePeer() ~= nil)
   for i, h in ipairs(HOUSES) do
     local b = frame.houseButtons[i]
-    b:SetEnabled(self:LastPrice(id, h) ~= nil)
+    b:SetEnabled(self:LastPrice(id, h) ~= nil or self:BestPeer(h) ~= nil)
     if h == house then
       b:LockHighlight()
     else
@@ -346,13 +366,15 @@ draw = function()
                                                                                            self:Age(low[1])))
 end
 
--- Opens (or switches) the window to that item, at the auction house currently viewed if the item was seen there.
+-- Opens (or switches) the window to that item.
 function ADB:ShowItem(itemID)
   if not frame then build() end
   frame.itemID = itemID
   frame.range = frame.range or savedState().range or 2
-  local house = self:ViewHouse()
-  if not self:LastPrice(itemID, house) then
+  -- the open AH, else this character's faction's (another one only when neither we nor a trusted character have
+  -- prices there)
+  local house = self.house or self:PlayerHouse()
+  if not self:LastPrice(itemID, house) and not self:BestPeer(house) then
     for _, h in ipairs(HOUSES) do
       if self:LastPrice(itemID, h) then
         house = h
@@ -361,12 +383,29 @@ function ADB:ShowItem(itemID)
     end
   end
   frame.house = house
+  if frame.itemID ~= frame.fromItem then frame.from, frame.fromItem = {}, itemID end
+  self:AskHistory(itemID, {house}, true)
   frame:Show()
   draw()
   self:LoadItems({[itemID] = true}, function() if frame.itemID == itemID and frame:IsShown() then draw() end end, 5)
 end
 
-ADB:Listen("SCAN_DATA", function() if frame and frame:IsShown() then draw() end end)
+local function redraw() if frame and frame:IsShown() then draw() end end
+ADB:Listen("SCAN_DATA", redraw)
+ADB:Listen("PEERS_CHANGED", redraw)
+
+-- History from a trusted character (or our own live search) for the item shown.
+ADB:Listen("HISTORY_MERGED", function(self, id, house, sender, n)
+  if not (frame and frame:IsShown() and frame.itemID == id) then return end
+  if n > 0 and sender ~= self.myName then frame.from[house] = sender end
+  draw()
+end)
+
+ADB:Listen("LIVE_RESULT", function(_, id, house)
+  if not (frame and frame:IsShown() and frame.itemID == id) then return end
+  frame.house = house
+  draw()
+end)
 
 -- Alt-click any item: bags, bank, chat links, merchant, character... all go through HandleModifiedItemClick.
 ADB:Listen("LOGIN", function(self)

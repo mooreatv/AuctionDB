@@ -30,20 +30,45 @@ local function onItemTooltip(tt, data)
   local own = self:PlayerHouse()
   local houses = own == "Neutral" and {own} or {own, "Neutral"}
   for _, house in ipairs(houses) do
+    local label = house == own and "AH" or "Neutral AH"
     local p = self:LastPrice(itemID, house)
     if p then
       local ts, minU, median, qty = p[1], p[2], p[3], p[4]
       local below = vp and minU > 0 and minU < vp
-      local label = house == own and "AH" or "Neutral AH"
       tt:AddDoubleLine(("%s min%s (%s ago, %d listed)"):format(label, below and " |cFF00FF00< vendor|r" or "",
                                                                self:Age(ts), qty), self:Money(minU), 0.6, 0.9, 1, 1, 1,
                        1)
       if median ~= minU then tt:AddDoubleLine(label .. " median", self:Money(median), 0.6, 0.9, 1, 1, 1, 1) end
     end
   end
+  -- newer prices from a trusted character of another account (Comm.lua): asked while Alt is held
+  local asking
+  for _, house in ipairs(houses) do asking = asking or self:Asking(itemID, house) end
+  local peer, list = self:AskTarget(itemID, houses)
+  if peer and IsAltKeyDown() then asking = self:AskHistory(itemID, houses) end
+  if asking then
+    tt:AddLine(("AH: asking %s..."):format(asking:match("^%S+")), 0.5, 0.5, 0.5)
+  elseif peer then
+    local p = self:LastPrice(itemID, list[1])
+    tt:AddLine(("%s, Alt: ask %s"):format(p and ("AH price " .. self:Age(p[1]) .. " old") or "No AH price",
+                                          peer:match("^%S+")), 0.5, 0.5, 0.5)
+  end
 end
 
 TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, onItemTooltip)
+
+-- Rebuilds the item tooltip (any item, or only that one).
+local function refresh(id)
+  local _, _, shown = GameTooltip:GetItem()
+  if GameTooltip:IsShown() and shown and (not id or shown == id) then GameTooltip:RefreshData() end
+end
+
+-- The answer came: show it if the tooltip is still on that item.
+ADB:Listen("HISTORY_MERGED", function(_, id) refresh(id) end)
+
+-- Alt pressed over an item tooltip: ask (see above).
+ADB:On("MODIFIER_STATE_CHANGED",
+       function(_, key, down) if down == 1 and (key == "LALT" or key == "RALT") then refresh() end end)
 
 -- /ahdb price <itemID|link>: saved history (last scans, else last days) and the graph window, works away from the AH.
 ADB:AddCommand("price", function(self, rest)

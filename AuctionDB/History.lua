@@ -4,6 +4,7 @@
 -- - house.daily[itemID]: one rollup per older day, kept DAILY_DAYS days, "ts,min,median,qty,scans ..." oldest first:
 --   ts of the day's last scan, lowest min, median of the scans' medians, average quantity, number of scans.
 -- Days are UTC days of the server time.
+-- Points from trusted characters (Comm.lua) are merged in: same scan (ts) kept once, same day combined.
 local _, ADB = ...
 
 local RECENT = 48 * 3600
@@ -36,6 +37,27 @@ local function append(s, more)
   return s .. " " .. more
 end
 
+local function store(t, id, list)
+  local s = encode(list)
+  t[id] = s ~= "" and s or nil
+end
+
+-- Start of the oldest day kept as single scans.
+function ADB:RecentStart() return day(GetServerTime() - RECENT) * DAY end
+
+-- Lowest and quantity weighted median unit price of a list of {unitPrice, count} (sorted in place); 0, 0 if empty.
+function ADB:PriceStats(units)
+  if #units == 0 then return 0, 0 end
+  table.sort(units, function(a, b) return a[1] < b[1] end)
+  local total = 0
+  for _, u in ipairs(units) do total = total + u[2] end
+  local acc = 0
+  for _, u in ipairs(units) do
+    acc = acc + u[2]
+    if acc * 2 >= total then return units[1][1], u[1] end
+  end
+end
+
 -- Lower median of the non-zero values, 0 if none.
 function ADB:Median(values)
   local v = {}
@@ -66,6 +88,38 @@ local function rollup(points)
   return days
 end
 
+local function lowest(a, b)
+  if a == 0 or (b > 0 and b < a) then return b end
+  return a
+end
+
+-- Daily lists merged by day (oldest first): the same last scan is the same data, otherwise lowest min, median of the
+-- one with more scans, scan weighted quantity, scans added.
+local function mergeDaily(a, b)
+  if #b == 0 then return a end
+  if #a == 0 then return b end
+  local byDay, days = {}, {}
+  for _, list in ipairs({a, b}) do
+    for _, p in ipairs(list) do
+      local d = day(p[1])
+      local q = byDay[d]
+      if not q then
+        byDay[d] = p
+        days[#days + 1] = d
+      elseif q[1] ~= p[1] then
+        local n = q[5] + p[5]
+        local med = q[5] >= p[5] and q[3] or p[3]
+        if med == 0 then med = math.max(q[3], p[3]) end
+        byDay[d] = {math.max(q[1], p[1]), lowest(q[2], p[2]), med, math.floor((q[4] * q[5] + p[4] * p[5]) / n + 0.5), n}
+      end
+    end
+  end
+  table.sort(days)
+  local out = {}
+  for i, d in ipairs(days) do out[i] = byDay[d] end
+  return out
+end
+
 function ADB:AddHistoryPoint(house, id, ts, minU, median, qty)
   house.items[id] = append(house.items[id], ("%d,%d,%d,%d"):format(ts, minU, median, qty))
 end
@@ -87,9 +141,8 @@ function ADB:CompactHistory(house, now)
           keep[#keep + 1] = p
         end
       end
-      house.daily[id] = append(house.daily[id], encode(rollup(old)))
-      s = encode(keep)
-      house.items[id] = s ~= "" and s or nil
+      store(house.daily, id, mergeDaily(decode(house.daily[id]), rollup(old)))
+      store(house.items, id, keep)
       rolled = rolled + 1
     end
   end
@@ -99,8 +152,7 @@ function ADB:CompactHistory(house, now)
     if not first or first < oldest then
       local keep = {}
       for _, p in ipairs(decode(s)) do if p[1] >= oldest then keep[#keep + 1] = p end end
-      s = encode(keep)
-      house.daily[id] = s ~= "" and s or nil
+      store(house.daily, id, keep)
       dropped = dropped + 1
     end
   end
@@ -117,8 +169,83 @@ end
 function ADB:DailyHistory(itemID, house)
   local h = self.sv.houses[house]
   if not h then return {} end
-  local list = decode(h.daily[itemID])
-  for _, p in ipairs(rollup(decode(h.items[itemID]))) do list[#list + 1] = p end
+  return mergeDaily(decode(h.daily[itemID]), rollup(decode(h.items[itemID])))
+end
+
+-- The daily entries as stored (without the recent scans), oldest first.
+function ADB:StoredDaily(itemID, house)
+  local h = self.sv.houses[house]
+  return decode(h and h.daily[itemID])
+end
+
+-- Adds scan points ({ts, min, median, qty}, any order) and daily entries from another character; points of days
+-- already rolled up go into the daily ones. Returns how many points / entries were new.
+function ADB:MergeHistory(house, id, recent, daily)
+  local cutoff = day(GetServerTime() - RECENT)
+  local mine = decode(house.items[id])
+  local seen = {}
+  for _, p in ipairs(mine) do seen[p[1]] = true end
+  local old, added = {}, 0
+  for _, p in ipairs(recent) do
+    if not seen[p[1]] then
+      seen[p[1]] = true
+      added = added + 1
+      if day(p[1]) < cutoff then
+        old[#old + 1] = p
+      else
+        mine[#mine + 1] = p
+      end
+    end
+  end
+  if added > #old then
+    table.sort(mine, function(a, b) return a[1] < b[1] end)
+    store(house.items, id, mine)
+  end
+  table.sort(old, function(a, b) return a[1] < b[1] end)
+  local new = mergeDaily(daily, rollup(old))
+  if #new > 0 then
+    local before = house.daily[id]
+    store(house.daily, id, mergeDaily(decode(before), new))
+    if house.daily[id] ~= before then added = added + #daily end
+  end
+  return added
+end
+
+-- Wire format for addon messages: same points, numbers in base 36, ts as the difference with the previous point.
+local DIGITS = "0123456789abcdefghijklmnopqrstuvwxyz"
+local function b36(n)
+  n = math.floor(n)
+  if n <= 0 then return "0" end
+  local s = ""
+  while n > 0 do
+    local r = n % 36
+    s = DIGITS:sub(r + 1, r + 1) .. s
+    n = math.floor(n / 36)
+  end
+  return s
+end
+ADB.B36 = b36
+
+function ADB:ToWire(list)
+  local parts, prev = {}, 0
+  for i, p in ipairs(list) do
+    local f = {b36(p[1] - prev)}
+    prev = p[1]
+    for j = 2, #p do f[j] = b36(p[j]) end
+    parts[i] = table.concat(f, ",")
+  end
+  return table.concat(parts, " ")
+end
+
+function ADB:FromWire(s)
+  local list, prev = {}, 0
+  for ps in (s or ""):gmatch("%S+") do
+    local p = {}
+    for v in ps:gmatch("[^,]+") do p[#p + 1] = tonumber(v, 36) or 0 end
+    prev = prev + (p[1] or 0)
+    p[1] = prev
+    list[#list + 1] = p
+  end
   return list
 end
 
@@ -134,11 +261,6 @@ end
 ADB:Listen("LOGIN", function(self)
   for _, house in pairs(self.sv.houses) do
     house.daily = house.daily or {}
-    for id, h in pairs(house.items) do
-      if type(h) == "table" then
-        local s = encode(h)
-        house.items[id] = s ~= "" and s or nil
-      end
-    end
+    for id, h in pairs(house.items) do if type(h) == "table" then store(house.items, id, h) end end
   end
 end)
