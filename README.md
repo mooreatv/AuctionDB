@@ -3,6 +3,7 @@
 AHDB scans the whole auction house, keeps a price history per item that you can see as a graph (Alt-click any item),
 shows vendor and AH prices in item tooltips and warns you before you list something for less than a vendor would pay.
 Your characters on other accounts can share their prices, and one parked at the AH can look up current prices for you.
+Anyone in your guild or group can ask for a price with `!ahdb <item>` in chat.
 
 The Classic / Mists / retail versions (and their MoLib based code) are on the
 [legacy](https://github.com/mooreatv/AuctionDB/tree/legacy) branch.
@@ -54,7 +55,8 @@ character parked at the AH, another one out in the world):
 - Price history graph of any item: Alt-click it or `/ahdb price <item>` (see above).
 - Prices shared with your characters on other accounts, and live AH prices from one parked at the AH (see above).
 - `!ahdb <item>` (link, itemID or name) in guild, party or raid chat, from anyone: AHDB answers there with the item's
-  last AH prices, its 30 day min - median and its vendor price (one answer even with several AHDB users around).
+  last AH prices, its 30 day min - median and its vendor price (AHDB users see it with colors and coins). With several
+  AHDB users around, one answers: the one with the most recent scan.
   Part of a name (`!ahdb cloth`) gets the list of the matching items to pick from. When nobody has a price, the one
   with the most recent scan says so.
 - Optionally ("Record full scans" in the options) it also keeps every auction of the last scans, which
