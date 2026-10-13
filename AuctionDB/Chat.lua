@@ -53,23 +53,44 @@ end
 
 local function recent(key) return answered[key] and GetTime() - answered[key] < AGAIN end
 
-local function onChat(self, channel, text)
+local function onChat(self, channel, text, sender)
   if text:sub(1, #ANSWER) == ANSWER then
     local id = tonumber(text:match("|Hitem:(%d+)"))
-    if id then answered[channel .. ":" .. id] = GetTime() end
+    if id then
+      answered[channel .. ":" .. id] = GetTime()
+      self:Debug("!ahdb: %s answered about item %d in %s", sender, id, channel)
+    end
     return
   end
   local cmd, rest = text:match("^(%S+)%s+(.-)%s*$")
   if not cmd or cmd:lower() ~= "!ahdb" or not self.db.chatAnswers then return end
   local id = itemFrom(rest)
-  if not id then return end
+  if not id then
+    self:Debug("!ahdb from %s in %s: unknown item %q", sender, channel, rest)
+    return
+  end
   local key = channel .. ":" .. id
   local _, p = prices(self, id)
-  if not p or recent(key) then return end
+  if not p then
+    self:Debug("!ahdb from %s in %s: no price for item %d", sender, channel, id)
+    return
+  end
+  if recent(key) then
+    self:Debug("!ahdb from %s in %s: item %d answered less than %ds ago", sender, channel, id, AGAIN)
+    return
+  end
   -- fresher prices answer sooner: 0.3s to 2.3s, plus up to 0.7s at random
   local delay = 0.3 + math.min(2, (GetServerTime() - p[1]) / 3600 * 0.2) + math.random() * 0.7
+  self:Debug("!ahdb from %s in %s: item %d, answering in %.1fs unless another AHDB does", sender, channel, id, delay)
   C_Timer.After(delay, function()
-    if recent(key) or GetTime() - lastAnswer < GAP then return end
+    if recent(key) then
+      self:Debug("!ahdb: item %d already answered in %s, not answering", id, channel)
+      return
+    end
+    if GetTime() - lastAnswer < GAP then
+      self:Debug("!ahdb: answered something less than %ds ago, not answering", GAP)
+      return
+    end
     answered[key] = GetTime()
     lastAnswer = GetTime()
     self:LoadItems({[id] = true}, function()
@@ -79,4 +100,6 @@ local function onChat(self, channel, text)
   end)
 end
 
-for event, channel in pairs(CHANNELS) do ADB:On(event, function(self, text) onChat(self, channel, text) end) end
+for event, channel in pairs(CHANNELS) do
+  ADB:On(event, function(self, text, sender) onChat(self, channel, text, sender) end)
+end
