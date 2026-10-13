@@ -11,7 +11,7 @@ local CHECKBOXES = {
     "Chat message when the 15 min between full scans are up and you're not at the AH (/ahdb next: time left)."
   }, {
     "minimapButton", "Minimap button",
-    "Shows the time left before the next full scan when hovered, click for these options. Drag it to move it."
+    "Shows the time left before the next full scan when hovered, right-click for these options, drag to move it."
   }, {
     "sellWarning", "Warn when selling below vendor price",
     "On the AH sell page, warn when your price (after the AH cut) is less than what a vendor pays for the item."

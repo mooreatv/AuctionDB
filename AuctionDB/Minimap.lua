@@ -1,5 +1,5 @@
--- Minimap button (option "Minimap button"): tooltip with the time left before the next full scan, click for the
--- options, drag to move it around the minimap.
+-- Minimap button (option "Minimap button"): tooltip with the time left before the next full scan, left click prints
+-- it, right click for the options, drag to move it around the minimap.
 local _, ADB = ...
 
 local button
@@ -17,7 +17,7 @@ local function tooltip(b)
   local text = ADB:ScanStatusText()
   GameTooltip:AddLine(text:sub(1, 1):upper() .. text:sub(2), 1, 1, 1)
   GameTooltip:AddLine("Alt-click any item: price history", 0.6, 0.9, 1)
-  GameTooltip:AddLine("Click: options, drag: move", 0.6, 0.9, 1)
+  GameTooltip:AddLine("Right-click: options, drag: move", 0.6, 0.9, 1)
   GameTooltip:Show()
 end
 
@@ -26,7 +26,7 @@ local function build()
   b:SetSize(31, 31)
   b:SetFrameStrata("MEDIUM")
   b:SetFrameLevel(8)
-  b:RegisterForClicks("LeftButtonUp")
+  b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
   b:RegisterForDrag("LeftButton")
   b:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
   local bg = b:CreateTexture(nil, "BACKGROUND")
@@ -37,37 +37,48 @@ local function build()
   icon:SetTexture("Interface\\AddOns\\AuctionDB\\AuctionDB")
   icon:SetSize(20, 20)
   icon:SetPoint("CENTER")
+  icon:SetMask("Interface\\CharacterFrame\\TempPortraitAlphaMask") -- round, the square corners hidden
   local border = b:CreateTexture(nil, "OVERLAY")
   border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
   border:SetSize(53, 53)
   border:SetPoint("TOPLEFT")
-  b:SetScript("OnClick", function() Settings.OpenToCategory(ADB.category:GetID()) end)
-  -- the tooltip's countdown is refreshed every second while shown
+  b:SetScript("OnClick", function(_, mouse)
+    if mouse == "RightButton" then
+      Settings.OpenToCategory(ADB.category:GetID())
+    else
+      ADB:Print(ADB:ScanStatusText())
+    end
+  end)
+  -- one OnUpdate for both: while dragging the button follows the cursor (which leaves the button, so OnLeave must not
+  -- stop it), while hovered the tooltip's countdown is refreshed every second
   local elapsed = 0
-  b:SetScript("OnEnter", function(self)
-    tooltip(self)
-    self:SetScript("OnUpdate", function(_, dt)
-      elapsed = elapsed + dt
-      if elapsed < 1 then return end
-      elapsed = 0
-      tooltip(self)
-    end)
-  end)
-  b:SetScript("OnLeave", function(self)
-    self:SetScript("OnUpdate", nil)
-    GameTooltip:Hide()
-  end)
-  b:SetScript("OnDragStart", function(self)
-    GameTooltip:Hide()
-    self:SetScript("OnUpdate", function()
+  b:SetScript("OnUpdate", function(self, dt)
+    if self.dragging then
       local mx, my = Minimap:GetCenter()
       local x, y = GetCursorPosition()
       local scale = Minimap:GetEffectiveScale()
       ADB.db.minimapAngle = math.deg(math.atan2(y / scale - my, x / scale - mx))
       place(self)
-    end)
+    elseif self.hovered then
+      elapsed = elapsed + dt
+      if elapsed < 1 then return end
+      elapsed = 0
+      tooltip(self)
+    end
   end)
-  b:SetScript("OnDragStop", function(self) self:SetScript("OnUpdate", nil) end)
+  b:SetScript("OnEnter", function(self)
+    self.hovered = true
+    if not self.dragging then tooltip(self) end
+  end)
+  b:SetScript("OnLeave", function(self)
+    self.hovered = false
+    GameTooltip:Hide()
+  end)
+  b:SetScript("OnDragStart", function(self)
+    self.dragging = true
+    GameTooltip:Hide()
+  end)
+  b:SetScript("OnDragStop", function(self) self.dragging = false end)
   button = b
 end
 
