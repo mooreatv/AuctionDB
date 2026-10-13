@@ -20,6 +20,21 @@ history, even away from the AH:
 - Every scan is kept 2 days, then one summary per day for 180 days, so the saved data stays small even when scanning
   every 15 minutes.
 
+## Sharing prices between your accounts
+
+Saved data is per WoW account. To use the prices one account scanned on another one's characters (e.g. one
+character parked at the AH, another one out in the world):
+
+- `/ahdb trust <First Last>` (or target the character and `/ahdb trust`) on both sides, then:
+- Item tooltips and the price window ask an online trusted character for prices newer than yours ("asking ...")
+  and add them to your price history.
+- **Live** button of the price window (or `/ahdb live <item>`): a trusted character at an open AH searches the item
+  and sends its current min / median price and quantity listed.
+- Use characters of the same faction (addon messages may not reach the other one); the neutral AH prices are
+  shared either way. `/ahdb trust` lists who's trusted and online.
+- Out of the game, [ahdbmerge](https://github.com/mooreatv/AHDBapp#merging-price-history-between-your-wow-accounts-wow-forever)
+  merges the price history of all the accounts of a WoW install.
+
 ## What does it do?
 
 - Opening the auction house starts a full scan (Blizzard allows one every 15 minutes per game session; hold Shift to
