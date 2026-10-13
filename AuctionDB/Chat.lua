@@ -68,17 +68,29 @@ local function findItem(self, text, done)
   end, 3)
 end
 
--- "AHDB which "cloth": Silk Cloth, Wool Cloth, ... (+3 more)": closest (shortest) names first, as many as fit.
+-- Item link without its empty trailing fields (same link, shorter: more fit in a chat message).
+local function shortLink(link) return link and (link:gsub("(|Hitem:[^|]-):+|h", "%1|h")) end
+
+-- "AHDB which "cloth": [Silk Cloth], [Wool Cloth], Linen Cloth, ... (+3 more)": closest (shortest) names first, as
+-- links while they fit (~50 characters each), then as names.
 local function which(query, matches)
   table.sort(matches, function(a, b)
     if #a.name ~= #b.name then return #a.name < #b.name end
     return a.name < b.name
   end)
-  local msg, n = ('%swhich "%s":'):format(ANSWER, query), 0
+  local msg, n, names = ('%swhich "%s":'):format(ANSWER, query), 0, false
+  local room = MAX_MESSAGE - #" (+999 more)"
   for _, m in ipairs(matches) do
-    local add = (n == 0 and " " or ", ") .. m.name
-    if #msg + #add + #" (+999 more)" > MAX_MESSAGE then break end
-    msg = msg .. add
+    local sep = n == 0 and " " or ", "
+    local link = not names and shortLink(select(2, C_Item.GetItemInfo(m.id)))
+    if link and #msg + #sep + #link <= room then
+      msg = msg .. sep .. link
+    elseif #msg + #sep + #m.name <= room then
+      names = true
+      msg = msg .. sep .. m.name
+    else
+      break
+    end
     n = n + 1
   end
   if n < #matches then msg = msg .. (" (+%d more)"):format(#matches - n) end
@@ -97,7 +109,7 @@ end
 local function answer(self, id)
   local house, p = prices(self, id)
   if not house then return end
-  local link = select(2, C_Item.GetItemInfo(id)) or ("item " .. id)
+  local link = shortLink(select(2, C_Item.GetItemInfo(id))) or ("item " .. id)
   local parts = {
     ("%s%s %s AH %s ago: min %s, median %s, %d listed"):format(ANSWER, link, house, self:Age(p[1]),
                                                                self:MoneyText(p[2]), self:MoneyText(p[3]), p[4])
@@ -192,6 +204,33 @@ end
 for event, channel in pairs(CHANNELS) do
   ADB:On(event, function(self, text, sender) onChat(self, channel, text, sender) end)
 end
+
+-- How AHDB answers look in our chat window: colors and coin icons (chat messages can't carry them: everyone else sees
+-- the plain text that was sent).
+local function coins(text)
+  local copper = ADB:ParseMoney(text)
+  return copper and ("|cffffffff" .. ADB:Money(copper) .. "|r") or text
+end
+
+local function pretty(msg)
+  msg = msg:gsub("^" .. ANSWER, "|cff99e5ffAHDB|r ")
+  msg = msg:gsub(" (%a+ AH) (%S+ ago):", " |cffffd100%1|r |cffa0a0a0%2|r:")
+  msg = msg:gsub("(median) ([%dgsc]+)", function(l, v) return l .. " " .. coins(v) end)
+  msg = msg:gsub("(min) ([%dgsc]+)", function(l, v) return l .. " " .. coins(v) end)
+  msg = msg:gsub("(vendor) ([%dgsc]+)", function(l, v) return l .. " " .. coins(v) end)
+  msg = msg:gsub("(30 days) ([%dgsc]+)%-([%dgsc]+)",
+                 function(l, a, b) return l .. " " .. coins(a) .. " - " .. coins(b) end)
+  msg = msg:gsub("(%d+) listed", "|cffffffff%1|r listed")
+  return msg
+end
+
+ADB:Listen("LOGIN", function()
+  for event in pairs(CHANNELS) do
+    ChatFrameUtil.AddMessageEventFilter(event, function(_, _, msg, ...)
+      if msg:sub(1, #ANSWER) == ANSWER then return false, pretty(msg), ... end
+    end)
+  end
+end)
 
 -- Scan times of the AHDB users of the group and guild. Payload: Comm.lua's presence ("<open AH>,<A>,<H>,<N>").
 
