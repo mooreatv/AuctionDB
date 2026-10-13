@@ -26,6 +26,7 @@ local MAX_MESSAGE = 255 -- chat message length
 
 local answered = {} -- channel:itemID -> GetTime() of the last answer (ours or another AHDB user's)
 local lastAnswer = 0
+local echo = {} -- channel -> answer we sent, until it shows in that channel
 local users = {group = {}, guild = {}} -- other AHDB users heard from: name -> {house -> last scan ts}
 
 local function scope(channel) return (channel == "GUILD" or channel == "OFFICER") and "guild" or "group" end
@@ -68,11 +69,9 @@ local function findItem(self, text, done)
   end, 3)
 end
 
--- Item link without its empty trailing fields (same link, shorter: more fit in a chat message).
-local function shortLink(link) return link and (link:gsub("(|Hitem:[^|]-):+|h", "%1|h")) end
-
 -- "AHDB which "cloth": [Silk Cloth], [Wool Cloth], Linen Cloth, ... (+3 more)": closest (shortest) names first, as
--- links while they fit (~50 characters each), then as names.
+-- links while they fit (~60 characters each), then as names. Links are sent as the client makes them: one with its
+-- empty trailing fields cut was not delivered.
 local function which(query, matches)
   table.sort(matches, function(a, b)
     if #a.name ~= #b.name then return #a.name < #b.name end
@@ -82,7 +81,7 @@ local function which(query, matches)
   local room = MAX_MESSAGE - #" (+999 more)"
   for _, m in ipairs(matches) do
     local sep = n == 0 and " " or ", "
-    local link = not names and shortLink(select(2, C_Item.GetItemInfo(m.id)))
+    local link = not names and select(2, C_Item.GetItemInfo(m.id))
     if link and #msg + #sep + #link <= room then
       msg = msg .. sep .. link
     elseif #msg + #sep + #m.name <= room then
@@ -109,7 +108,7 @@ end
 local function answer(self, id)
   local house, p = prices(self, id)
   if not house then return end
-  local link = shortLink(select(2, C_Item.GetItemInfo(id))) or ("item " .. id)
+  local link = select(2, C_Item.GetItemInfo(id)) or ("item " .. id)
   local parts = {
     ("%s%s %s AH %s ago: min %s, median %s, %d listed"):format(ANSWER, link, house, self:Age(p[1]),
                                                                self:MoneyText(p[2]), self:MoneyText(p[3]), p[4])
@@ -167,12 +166,22 @@ local function respond(self, channel, sender, key, house, what, build)
     end
     answered[key] = GetTime()
     lastAnswer = GetTime()
-    build(function(msg) if msg then C_ChatInfo.SendChatMessage(msg, channel) end end)
+    build(function(msg)
+      if not msg then return end
+      echo[channel] = msg
+      C_ChatInfo.SendChatMessage(msg, channel)
+      C_Timer.After(5, function()
+        if echo[channel] ~= msg then return end
+        echo[channel] = nil
+        self:Debug("!ahdb: our answer about %s didn't show in %s (not delivered): %s", what, channel, msg)
+      end)
+    end)
   end)
 end
 
 local function onChat(self, channel, text, sender)
   if text:sub(1, #ANSWER) == ANSWER then
+    if sender == self.myName then echo[channel] = nil end
     local id = tonumber(text:match("|Hitem:(%d+)"))
     local query = text:match('^' .. ANSWER .. 'which "(.-)":')
     if id then answered[channel .. ":" .. id] = GetTime() end
