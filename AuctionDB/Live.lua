@@ -11,12 +11,16 @@ local RESEND = 1 -- seconds before sending the query again when it didn't go out
 local TRIES = 5
 local WAIT = 8 -- seconds for the results
 local QUIET = 3 -- seconds since the last AH query from elsewhere (Blizzard UI, other add-ons) before searching
+local MAX_WAIT = 20 -- seconds a request can wait for the AH to be free (one at a time)
 
 local current -- search being done for a trusted character: {peer, qid, id, key, house}
+local waiting -- request waiting for the AH to be free: {peer, qid, id, t}
 local ours = false -- our own query being sent
 local sent = 0 -- AUCTION_HOUSE_THROTTLED_MESSAGE_SENT count
 local lastForeign = 0
 local asking = {} -- query id -> {peer, id, t}
+
+local function itemName(id) return select(2, C_Item.GetItemInfo(id)) or id end
 
 -- Asking side
 
@@ -64,8 +68,8 @@ local function finish(self, units, qty)
   local minU, median = self:PriceStats(units)
   local ts = GetServerTime()
   self:AddHistoryPoint(self:House(c.house), c.id, ts, minU, median, qty)
-  self:Print("live search of %s for %s: min %s, median %s, %d listed", select(2, C_Item.GetItemInfo(c.id)) or c.id,
-             c.peer, self:Money(minU), self:Money(median), qty)
+  self:Print("live search of %s for %s: min %s, median %s, %d listed", itemName(c.id), c.peer, self:Money(minU),
+             self:Money(median), qty)
   self:Send(c.peer, "R", c.qid, ("%s,%d,%d,%d,%d"):format(c.house, ts, minU, median, qty),
             "live result for item " .. c.id)
   self:Fire("HISTORY_MERGED", c.id, c.house, self.myName, 1)
@@ -102,25 +106,15 @@ local function search(c, tries)
                 function() if current == c and sent == before and tries < TRIES then search(c, tries + 1) end end)
 end
 
-ADB:OnMessage("L", function(self, sender, qid, payload)
-  local id = tonumber(payload)
-  if not id then return end
-  local why
-  if not self.db.answerLive then
-    why = "live searches are off there"
-  elseif not self.ahOpen then
-    why = "AH closed"
-  elseif self.scanState then
-    why = "scanning"
-  elseif current or self.ahBusy or GetTime() - lastForeign < QUIET then
-    why = "AH busy, try again in a few seconds"
-  end
-  if why then
-    self:Print("%s asked for a live search of %s: %s", sender, select(2, C_Item.GetItemInfo(id)) or id, why)
-    self:Send(sender, "B", qid, why, "no live search: " .. why)
-    return
-  end
-  local c = {peer = sender, qid = qid, id = id, key = C_AuctionHouse.MakeItemKey(id), house = self.house}
+local function busy(self) return current or self.scanState or self.ahBusy or GetTime() - lastForeign < QUIET end
+
+local function reject(self, peer, qid, id, why)
+  self:Print("%s asked for a live search of %s: %s", peer, itemName(id), why)
+  self:Send(peer, "B", qid, why, "no live search: " .. why)
+end
+
+local function start(self, peer, qid, id)
+  local c = {peer = peer, qid = qid, id = id, key = C_AuctionHouse.MakeItemKey(id), house = self.house}
   current = c
   search(c, 1)
   -- no event when the results didn't change since a previous search: use what's there
@@ -132,9 +126,46 @@ ADB:OnMessage("L", function(self, sender, qid, payload)
       itemResults(self, c.key)
     else
       current = nil
-      self:Send(sender, "B", qid, "no answer from the AH (none listed?)", "no live search result")
+      self:Send(peer, "B", qid, "no answer from the AH (none listed?)", "no live search result")
     end
   end)
+end
+
+-- The AH is busy (our scan, a search, a sweep of another add-on, someone using it): wait for it to be free, one
+-- request at a time, up to MAX_WAIT s.
+local function wait(self)
+  local w = waiting
+  if not w then return end
+  if not self.ahOpen then
+    waiting = nil
+    reject(self, w.peer, w.qid, w.id, "AH closed")
+  elseif not busy(self) then
+    waiting = nil
+    start(self, w.peer, w.qid, w.id)
+  elseif GetTime() - w.t > MAX_WAIT then
+    waiting = nil
+    reject(self, w.peer, w.qid, w.id, self.scanState and "scanning" or ("AH busy for %ds"):format(MAX_WAIT))
+  else
+    C_Timer.After(0.5, function() wait(self) end)
+  end
+end
+
+ADB:OnMessage("L", function(self, sender, qid, payload)
+  local id = tonumber(payload)
+  if not id then return end
+  if not self.db.answerLive then
+    reject(self, sender, qid, id, "live searches are off there")
+  elseif not self.ahOpen then
+    reject(self, sender, qid, id, "AH closed")
+  elseif not busy(self) then
+    start(self, sender, qid, id)
+  elseif waiting then
+    reject(self, sender, qid, id, "AH busy, another search waiting")
+  else
+    waiting = {peer = sender, qid = qid, id = id, t = GetTime()}
+    self:Print("%s asked for a live search of %s: waiting for the AH to be free", sender, itemName(id))
+    wait(self)
+  end
 end)
 
 ADB:On("COMMODITY_SEARCH_RESULTS_UPDATED",
@@ -149,9 +180,7 @@ ADB:On("AUCTION_HOUSE_THROTTLED_MESSAGE_SENT", function() sent = sent + 1 end)
 -- AuctionDB.ahBusy while they use the AH.
 for _, fn in ipairs({
   "SendBrowseQuery", "RequestMoreBrowseResults", "SendSearchQuery", "SendSellSearchQuery", "SearchForFavorites"
-}) do
-  hooksecurefunc(C_AuctionHouse, fn, function() if not ours then lastForeign = GetTime() end end)
-end
+}) do hooksecurefunc(C_AuctionHouse, fn, function() if not ours then lastForeign = GetTime() end end) end
 
 ADB:Listen("AH_CLOSED", function(self)
   if not current then return end
