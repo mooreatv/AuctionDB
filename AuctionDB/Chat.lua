@@ -38,7 +38,7 @@ local users = {group = {}, guild = {}} -- other AHDB users heard from: name -> {
 local function scope(channel) return (channel == "GUILD" or channel == "OFFICER") and "guild" or "group" end
 
 -- Item named in the request: link, itemID, or name (of an item the client knows, or one of our price history).
--- done(itemID) for an exact match, else done(nil, matches): {id, name} of the items of our price history whose name
+-- done(itemID) for an exact match, else done(nil, matches): {id, name, link} of the items of our price history whose name
 -- contains the text (MIN_SEARCH characters or more). A single partial match is still only a match: "Black Silk Pack"
 -- may be missing from our history while "Pattern: Black Silk Pack" is there.
 local function findItem(self, text, done)
@@ -53,13 +53,14 @@ local function findItem(self, text, done)
   end
   -- true: exact match, nil: item not loaded yet
   local function look(item)
-    local n = C_Item.GetItemInfo(item)
+    local n, link = C_Item.GetItemInfo(item)
     if not n then return end
     local l = n:lower()
     if l == name then return true end
     if #name >= MIN_SEARCH and not seen[l] and l:find(name, 1, true) then
       seen[l] = true
-      matches[#matches + 1] = {id = item, name = n}
+      -- the link kept now: the client can forget the item by the time we answer (seen while it loads thousands)
+      matches[#matches + 1] = {id = item, name = n, link = link}
     end
     return false
   end
@@ -87,14 +88,13 @@ local function which(query, matches)
   local room = MAX_MESSAGE - #" (+999 more)"
   for _, m in ipairs(matches) do
     local sep = n == 0 and " " or ", "
-    local link = not names and select(2, C_Item.GetItemInfo(m.id))
+    local link = not names and m.link
     if link and #msg + #sep + #link <= room then
       msg = msg .. sep .. link
     elseif #msg + #sep + #m.name <= room then
       if not names then
-        ADB:Debug("!ahdb: %s listed as a name: %s", m.name, link and ("link of %d characters, %d left"):format(#link,
-                                                                                                         room - #msg) or
-                    "no link")
+        ADB:Debug("!ahdb: %s listed as a name: %s", m.name,
+                  link and ("link of %d characters, %d left"):format(#link, room - #msg) or "no link")
       end
       names = true
       msg = msg .. sep .. m.name
