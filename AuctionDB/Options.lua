@@ -17,6 +17,14 @@ local CHECKBOXES = {
     "tooltip", "Prices in item tooltips",
     "Vendor price per unit and the last scan's AH min / median price. Install BVP (BetterVendorPrice) for full " ..
       "stack and stack size vendor prices too (BVP then shows the vendor lines)."
+  }, {
+    "askPeers", "Ask trusted characters for prices",
+    "Item tooltips and the price window ask an online trusted character of another account (/ahdb trust, on both " ..
+      "sides) for newer prices than yours, added to your price history."
+  }, {
+    "answerLive", "Answer live AH searches",
+    "While this character is at an open AH, search items trusted characters ask about (Live button of the price " ..
+      "window, /ahdb live) and send them the current prices."
   }, {"debug", "Debug output", "Print detailed messages to the chat window (always kept in /ahdb bug)."}
 }
 

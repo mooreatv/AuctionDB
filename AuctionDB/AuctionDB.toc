@@ -17,6 +17,8 @@
 AuctionDB.lua
 Scan.lua
 History.lua
+Comm.lua
+Live.lua
 Record.lua
 Tooltip.lua
 Graph.lua

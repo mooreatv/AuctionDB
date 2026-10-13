@@ -25,7 +25,9 @@ ADB.defaults = {
   sellWarning = true, -- warn on the AH sell pages when the price nets less than a vendor pays
   recordScans = false, -- keep every auction of the last scans (AHDBapp format, see Record.lua)
   keepScans = 3, -- full scans kept per auction house when recording
-  tooltip = true
+  tooltip = true,
+  askPeers = true, -- ask trusted characters (other accounts) for prices (Comm.lua)
+  answerLive = true -- do live AH searches asked by trusted characters (Live.lua)
 }
 
 -- Everything we print (debug included, shown or not) is also kept: last MAX_LOG lines, saved across reloads (see Bug.lua).
@@ -101,6 +103,8 @@ ADB:On("ADDON_LOADED", function(self, name)
   sv.houses = sv.houses or {}
   -- itemIDs vendors refuse although the item data has a sell price (learned at merchants, see Vendor.lua)
   sv.unsellable = sv.unsellable or {[6947] = true} -- Instant Poison
+  -- full names of characters of other accounts we share prices with (Comm.lua)
+  sv.trusted = sv.trusted or {}
   self.sv = sv
   self:LoadLog()
 end)

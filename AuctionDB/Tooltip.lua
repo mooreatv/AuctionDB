@@ -30,20 +30,28 @@ local function onItemTooltip(tt, data)
   local own = self:PlayerHouse()
   local houses = own == "Neutral" and {own} or {own, "Neutral"}
   for _, house in ipairs(houses) do
+    local label = house == own and "AH" or "Neutral AH"
     local p = self:LastPrice(itemID, house)
     if p then
       local ts, minU, median, qty = p[1], p[2], p[3], p[4]
       local below = vp and minU > 0 and minU < vp
-      local label = house == own and "AH" or "Neutral AH"
       tt:AddDoubleLine(("%s min%s (%s ago, %d listed)"):format(label, below and " |cFF00FF00< vendor|r" or "",
                                                                self:Age(ts), qty), self:Money(minU), 0.6, 0.9, 1, 1, 1,
                        1)
       if median ~= minU then tt:AddDoubleLine(label .. " median", self:Money(median), 0.6, 0.9, 1, 1, 1, 1) end
     end
+    -- newer prices from a trusted character of another account (Comm.lua)
+    local peer = self:AskHistory(itemID, house) or self:Asking(itemID, house)
+    if peer then tt:AddLine(("%s: asking %s..."):format(label, peer), 0.5, 0.5, 0.5) end
   end
 end
 
 TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, onItemTooltip)
+
+-- The answer came: show it if the tooltip is still on that item.
+ADB:Listen("HISTORY_MERGED", function(_, id)
+  if GameTooltip:IsShown() and select(3, GameTooltip:GetItem()) == id then GameTooltip:RefreshData() end
+end)
 
 -- /ahdb price <itemID|link>: saved history (last scans, else last days) and the graph window, works away from the AH.
 ADB:AddCommand("price", function(self, rest)

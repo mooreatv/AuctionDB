@@ -175,21 +175,7 @@ function ADB:RecordHistory(e)
   local nItems = 0
   for id, t in pairs(byItem) do
     nItems = nItems + 1
-    local minU, median = 0, 0
-    if #t.units > 0 then
-      table.sort(t.units, function(a, b) return a[1] < b[1] end)
-      minU = t.units[1][1]
-      local total = 0
-      for _, u in ipairs(t.units) do total = total + u[2] end
-      local acc = 0
-      for _, u in ipairs(t.units) do
-        acc = acc + u[2]
-        if acc * 2 >= total then
-          median = u[1]
-          break
-        end
-      end
-    end
+    local minU, median = self:PriceStats(t.units)
     self:AddHistoryPoint(self.scanHouse, id, ts, minU, median, t.qty)
   end
   self:CompactHistory(self.scanHouse, ts)
