@@ -177,6 +177,7 @@ end
 -- Sends the answer and checks it shows in the channel (a message the server refuses just doesn't).
 local function say(self, channel, msg, what)
   echo[channel] = msg
+  self:Debug("!ahdb: sending in %s: %s", channel, (msg:gsub("|", "||")))
   C_ChatInfo.SendChatMessage(msg, channel)
   C_Timer.After(5, function()
     if echo[channel] ~= msg then return end
