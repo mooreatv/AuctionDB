@@ -7,6 +7,7 @@
 --   daily entries), answered with H "<house>:<recent>/<daily>;..." (wire format, History.lua), merged into our history.
 --   Tooltips ask only while Alt is held; an item isn't asked about again until that character scans the house again.
 -- - L live AH search (Live.lua)
+-- On party / raid / guild channels, from anyone (OnGroupMessage, Chat.lua): G / g scan times of the AHDB users there.
 local _, ADB = ...
 
 local PREFIX = "AHDB"
@@ -18,6 +19,7 @@ local HOUSES = {"Alliance", "Horde", "Neutral"}
 ADB.peers = {} -- trusted characters heard from: full name -> {ah = open AH house, scans = {house -> last scan ts}}
 
 local handlers = {}
+local groupHandlers = {}
 local queue, sending = {}, false
 local lastSent = {} -- name -> GetTime() of our last message to them
 local checking = {} -- lower case name -> true while waiting for an answer to /ahdb trust
@@ -27,6 +29,9 @@ local asked = {} -- peer:house:itemID[:f] -> that character's scan of the house 
 local seq = math.random(1000)
 
 function ADB:OnMessage(kind, fn) handlers[kind] = fn end
+
+-- Messages on a party / raid / guild channel, from any AHDB user: fn(self, sender, channel, payload).
+function ADB:OnGroupMessage(kind, fn) groupHandlers[kind] = fn end
 
 function ADB:NewMessageID()
   seq = seq + 1
@@ -44,13 +49,18 @@ local function pump()
     sending = false
     return
   end
-  local r = C_ChatInfo.SendAddonMessage(PREFIX, m[2], "WHISPER", m[1])
+  local r
+  if m[3] then
+    r = C_ChatInfo.SendAddonMessage(PREFIX, m[2], m[3])
+  else
+    r = C_ChatInfo.SendAddonMessage(PREFIX, m[2], "WHISPER", m[1])
+  end
   if r == Enum.SendAddonMessageResult.AddonMessageThrottle then
     C_Timer.After(1, pump)
     return
   end
   table.remove(queue, 1)
-  lastSent[m[1]] = GetTime()
+  if not m[3] then lastSent[m[1]] = GetTime() end
   if r ~= Enum.SendAddonMessageResult.Success then ADB:Debug("message to %s not sent: %s", m[1], resultName(r)) end
   C_Timer.After(SPACING, pump)
 end
@@ -68,12 +78,28 @@ function ADB:Send(to, kind, id, payload, what)
   end
 end
 
+-- One short message on a party / raid / guild channel.
+function ADB:SendGroup(channel, kind, payload, what)
+  queue[#queue + 1] = {channel, ("%s;0;1/1;%s"):format(kind, payload), channel}
+  self:Debug("to %s: %s", channel, what or kind)
+  if not sending then
+    sending = true
+    pump()
+  end
+end
+
 -- sv.trusted: lower case name -> name (as typed, then as the server spells it once heard from)
-ADB:On("CHAT_MSG_ADDON", function(self, prefix, text, _, sender)
-  local lname = sender:lower()
-  if prefix ~= PREFIX or not self.sv.trusted[lname] then return end
+ADB:On("CHAT_MSG_ADDON", function(self, prefix, text, channel, sender)
+  if prefix ~= PREFIX then return end
   local kind, id, i, n, payload = text:match("^(%a);([^;]*);(%d+)/(%d+);(.*)$")
   if not kind then return end
+  if channel ~= "WHISPER" then
+    local fn = groupHandlers[kind]
+    if fn and sender ~= self.myName then fn(self, sender, channel, payload) end
+    return
+  end
+  local lname = sender:lower()
+  if not self.sv.trusted[lname] then return end
   i, n = tonumber(i), tonumber(n)
   local now = GetTime()
   if n > 1 then
@@ -105,7 +131,7 @@ end)
 
 -- Presence
 
-local function presence(self)
+function ADB:Presence()
   local t = {self.house or "-"}
   for i, house in ipairs(HOUSES) do
     local h = self.sv.houses[house]
@@ -117,7 +143,7 @@ end
 
 -- ask: they answer with theirs (when we just logged in or trusted them)
 function ADB:Announce(ask, to)
-  local p = presence(self)
+  local p = self:Presence()
   for _, name in pairs(to and {to} or self.sv.trusted) do
     if name ~= self.myName then self:Send(name, ask and "I" or "i", "0", p, "presence " .. p) end
   end

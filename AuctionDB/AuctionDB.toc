@@ -19,6 +19,7 @@ Scan.lua
 History.lua
 Comm.lua
 Live.lua
+Chat.lua
 Record.lua
 Tooltip.lua
 Graph.lua

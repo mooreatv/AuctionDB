@@ -28,6 +28,7 @@ ADB.defaults = {
   tooltip = true,
   askPeers = true, -- ask trusted characters (other accounts) for prices (Comm.lua)
   answerLive = true, -- do live AH searches asked by trusted characters (Live.lua)
+  chatAnswers = true, -- answer "!ahdb <item>" in guild / party / raid chat (Chat.lua)
   scanReadyAlert = true, -- chat message when the next full scan is possible, if not at the AH
   minimapButton = true,
   minimapAngle = 200 -- degrees, position of the minimap button around the minimap

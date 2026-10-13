@@ -39,6 +39,11 @@ local function onItemTooltip(tt, data)
                                                                self:Age(ts), qty), self:Money(minU), 0.6, 0.9, 1, 1, 1,
                        1)
       if median ~= minU then tt:AddDoubleLine(label .. " median", self:Money(median), 0.6, 0.9, 1, 1, 1, 1) end
+      -- typical over 30 days, once there are a few
+      local tmin, tmed, days = self:Typical(itemID, house)
+      if days >= 3 then
+        tt:AddDoubleLine(label .. " 30 days", self:Money(tmin) .. " - " .. self:Money(tmed), 0.6, 0.9, 1, 1, 1, 1)
+      end
     end
   end
   -- newer prices from a trusted character of another account (Comm.lua): asked while Alt is held
