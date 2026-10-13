@@ -25,7 +25,10 @@ ADB.defaults = {
   sellWarning = true, -- warn on the AH sell pages when the price nets less than a vendor pays
   recordScans = false, -- keep every auction of the last scans (AHDBapp format, see Record.lua)
   keepScans = 3, -- full scans kept per auction house when recording
-  tooltip = true
+  tooltip = true,
+  scanReadyAlert = true, -- chat message when the next full scan is possible, if not at the AH
+  minimapButton = true,
+  minimapAngle = 200 -- degrees, position of the minimap button around the minimap
 }
 
 -- Everything we print (debug included, shown or not) is also kept: last MAX_LOG lines, saved across reloads (see Bug.lua).

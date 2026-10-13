@@ -23,4 +23,5 @@ Graph.lua
 Vendor.lua
 Sell.lua
 Options.lua
+Minimap.lua
 Bug.lua
