@@ -19,11 +19,13 @@ local CHANNELS = {
   CHAT_MSG_INSTANCE_CHAT_LEADER = "INSTANCE_CHAT"
 }
 local ANSWER = "AHDB " -- our answers start with it, which is also how we see other AHDB users' answers
+local NONE = ANSWER .. "no " -- "no price" answers: not an answer for the others (they answer if they have prices)
 local AGAIN = 60 -- seconds before answering about the same item on the same channel again
 local GAP = 3 -- seconds between two of our answers
 local FALLBACK = 3 -- seconds the others wait for the AHDB user with the most recent scan to answer
 local PARTIAL = 6 -- seconds an AHDB user with only a list of partial matches waits for an exact answer
 local REQUEST_LIFE = 15 -- seconds an unanswered request can still get an answer
+local NOTHING = 9 -- seconds before the AHDB user with the most recent scan says it has no price, when no one answered
 local MIN_SEARCH = 3 -- characters for a search by part of the name ("!ahdb cloth")
 local MAX_MESSAGE = 255 -- chat message length
 
@@ -150,17 +152,39 @@ local function newRequest(channel)
   return req
 end
 
--- An AHDB answer in the channel answers the oldest request still open there, whatever the item it names.
-local function requestAnswered(channel)
+local function oldestRequest(channel)
   local list = requests[channel]
   if not list then return end
   while list[1] and GetTime() - list[1].t > REQUEST_LIFE do table.remove(list, 1) end
-  if list[1] then table.remove(list, 1).done = true end
+  return list[1], list
+end
+
+-- An AHDB answer in the channel answers the oldest request still open there, whatever the item it names; a "no
+-- price" one only stops the others from saying it too.
+local function requestAnswered(channel, none)
+  local req, list = oldestRequest(channel)
+  if not req then return end
+  if none then
+    req.none = true
+    return
+  end
+  table.remove(list, 1).done = true
 end
 
 -- Answers the request unless someone else does first: key (channel:what) against answering the same twice in a
 -- row, house whose most recent scan answers first, what for the debug log, exact: an item (else a list of partial
 -- matches, answered last), build(send) makes the message.
+-- Sends the answer and checks it shows in the channel (a message the server refuses just doesn't).
+local function say(self, channel, msg, what)
+  echo[channel] = msg
+  C_ChatInfo.SendChatMessage(msg, channel)
+  C_Timer.After(5, function()
+    if echo[channel] ~= msg then return end
+    echo[channel] = nil
+    self:Debug("!ahdb: our answer about %s didn't show in %s (not delivered): %s", what, channel, msg)
+  end)
+end
+
 local function respond(self, req, channel, sender, key, house, what, exact, build)
   if recent(key) then
     self:Debug("!ahdb from %s in %s: %s answered less than %ds ago", sender, channel, what, AGAIN)
@@ -192,27 +216,41 @@ local function respond(self, req, channel, sender, key, house, what, exact, buil
     end
     answered[key] = GetTime()
     lastAnswer = GetTime()
-    build(function(msg)
-      if not msg then return end
-      echo[channel] = msg
-      C_ChatInfo.SendChatMessage(msg, channel)
-      C_Timer.After(5, function()
-        if echo[channel] ~= msg then return end
-        echo[channel] = nil
-        self:Debug("!ahdb: our answer about %s didn't show in %s (not delivered): %s", what, channel, msg)
-      end)
-    end)
+    build(function(msg) if msg then say(self, channel, msg, what) end end)
+  end)
+end
+
+-- Nobody had a price (or an item by that name): the AHDB user with the most recent scan says so, if still no answer
+-- after NOTHING s. msg says what wasn't found.
+local function noPrice(self, req, channel, sender, what, msg)
+  local house = self:PlayerHouse()
+  if freshest(self, house, channel, sender) ~= self.myName then
+    self:Debug("!ahdb from %s in %s: %s: nothing here", sender, channel, what)
+    return
+  end
+  self:Debug("!ahdb from %s in %s: %s: nothing here either, saying so in %ds if nobody answers", sender, channel, what,
+             NOTHING)
+  C_Timer.After(NOTHING, function()
+    if req.done or req.none then return end
+    local scan = lastScan(self, house)
+    say(self, channel,
+        ("%s (last %s AH scan %s)"):format(msg, house, scan > 0 and (self:Age(scan) .. " ago") or "never"), what)
   end)
 end
 
 local function onChat(self, channel, text, sender)
   if text:sub(1, #ANSWER) == ANSWER then
     if sender == self.myName then echo[channel] = nil end
+    if text:sub(1, #NONE) == NONE then
+      requestAnswered(channel, true)
+      return
+    end
     requestAnswered(channel)
-    local id = tonumber(text:match("|Hitem:(%d+)"))
+    -- a list of matches only answers that request: an item asked for next still gets its prices
     local query = text:match('^' .. ANSWER .. 'which "(.-)":')
-    if id then answered[channel .. ":" .. id] = GetTime() end
+    local id = not query and tonumber(text:match("|Hitem:(%d+)"))
     if query then answered[channel .. ":q:" .. query:lower()] = GetTime() end
+    if id then answered[channel .. ":" .. id] = GetTime() end
     if id or query then self:Debug("!ahdb: %s answered about %s in %s", sender, id or query, channel) end
     return
   end
@@ -224,7 +262,8 @@ local function onChat(self, channel, text, sender)
     if id then
       local house = prices(self, id)
       if not house then
-        self:Debug("!ahdb from %s in %s: no price for item %d", sender, channel, id)
+        local link = select(2, C_Item.GetItemInfo(id)) or ("item " .. id)
+        noPrice(self, req, channel, sender, "item " .. id, ("%sno price for %s"):format(ANSWER, link))
         return
       end
       respond(self, req, channel, sender, channel .. ":" .. id, house, "item " .. id, true,
@@ -235,7 +274,8 @@ local function onChat(self, channel, text, sender)
               ('"%s" (%d partial matches)'):format(query, #matches), false,
               function(send) send(which(query, matches)) end)
     else
-      self:Debug("!ahdb from %s in %s: no item named %q", sender, channel, rest)
+      local name = rest:gsub("[|\"]", "")
+      noPrice(self, req, channel, sender, ('"%s"'):format(name), ('%sno item named "%s"'):format(ANSWER, name))
     end
   end)
 end

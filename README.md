@@ -55,7 +55,8 @@ character parked at the AH, another one out in the world):
 - Prices shared with your characters on other accounts, and live AH prices from one parked at the AH (see above).
 - `!ahdb <item>` (link, itemID or name) in guild, party or raid chat, from anyone: AHDB answers there with the item's
   last AH prices, its 30 day min - median and its vendor price (one answer even with several AHDB users around).
-  Part of a name (`!ahdb cloth`) gets the list of the matching items to pick from.
+  Part of a name (`!ahdb cloth`) gets the list of the matching items to pick from. When nobody has a price, the one
+  with the most recent scan says so.
 - Optionally ("Record full scans" in the options) it also keeps every auction of the last scans, which
   [AHDBapp](https://github.com/mooreatv/AHDBapp) can load into a database for your own analysis of the economy.
 - `/ahdb bug` shows a copyable log for bug reports. `/ahdb` lists all commands.
