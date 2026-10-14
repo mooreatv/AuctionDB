@@ -10,7 +10,8 @@ The Classic / Mists / retail versions (and their MoLib based code) are on the
 
 ## Price history graph
 
-**Alt-click any item** (bags, bank, chat links, AH lists, merchant...) or use `/ahdb price <item>` to see its price
+**Alt-click any item** (bags, bank, chat links, AH lists, merchant...) or use `/ahdb price <item>` (or
+`/ahdb graph <item>` for just the window; a link, itemID, name or part of a name like `wool cloth`) to see its price
 history, even away from the AH:
 
 ![Price history window](screenshots/price-history.png)

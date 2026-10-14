@@ -431,11 +431,5 @@ ADB:Listen("AH_SHOW", function(self)
   end
 end)
 
-ADB:AddCommand("graph", function(self, rest)
-  local id = tonumber(rest) or self:ItemIDFromLink(rest)
-  if not id then
-    self:Print("usage: /ahdb graph <itemID or shift-click an item> (or Alt-click any item)")
-    return
-  end
-  self:ShowItem(id)
-end, "graph <itemID|link> - price history graph window (also Alt-click any item)")
+ADB:AddCommand("graph", function(self, rest) self:CommandItem(rest, "graph", function(id) self:ShowItem(id) end) end,
+               "graph <name|itemID|link> - price history graph window (also Alt-click any item)")
