@@ -75,13 +75,9 @@ ADB:Listen("HISTORY_MERGED", function(_, id) refresh(id) end)
 ADB:On("MODIFIER_STATE_CHANGED",
        function(_, key, down) if down == 1 and (key == "LALT" or key == "RALT") then refresh() end end)
 
--- /ahdb price <itemID|link>: saved history (last scans, else last days) and the graph window, works away from the AH.
-ADB:AddCommand("price", function(self, rest)
-  local id = tonumber(rest) or self:ItemIDFromLink(rest)
-  if not id then
-    self:Print("usage: /ahdb price <itemID or shift-click an item> (or Alt-click any item)")
-    return
-  end
+-- /ahdb price <name|itemID|link>: saved history (last scans, else last days) and the graph window, works away from the
+-- AH.
+local function showPrice(self, id)
   local name = select(2, C_Item.GetItemInfo(id)) or id
   self:Print("%s: vendor %s", name, self:Money(self:VendorPrice(id)))
   local seen = false
@@ -100,4 +96,7 @@ ADB:AddCommand("price", function(self, rest)
   end
   if not seen then print("  not seen in any scan") end
   self:ShowItem(id)
-end, "price <itemID|link> - price history (chat and graph window; Alt-click any item for the window)")
+end
+
+ADB:AddCommand("price", function(self, rest) self:CommandItem(rest, "price", function(id) showPrice(self, id) end) end,
+               "price <name|itemID|link> - price history (chat and graph window; Alt-click any item for the window)")

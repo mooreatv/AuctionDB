@@ -41,8 +41,8 @@ local function scope(channel) return (channel == "GUILD" or channel == "OFFICER"
 -- Item named in the request: link, itemID, or name (of an item the client knows, or one of our price history).
 -- done(itemID) for an exact match, else done(nil, matches): {id, name, link} of the items of our price history whose name
 -- contains the text (MIN_SEARCH characters or more). A single partial match is still only a match: "Black Silk Pack"
--- may be missing from our history while "Pattern: Black Silk Pack" is there.
-local function findItem(self, text, done)
+-- may be missing from our history while "Pattern: Black Silk Pack" is there. Also used by /ahdb graph.
+function ADB:FindItem(text, done)
   local id = tonumber(text:match("|Hitem:(%d+)")) or tonumber(text:match("^(%d+)$")) or
                self:ItemIDFromLink(select(2, C_Item.GetItemInfo(text)))
   if id then return done(id) end
@@ -77,14 +77,44 @@ local function findItem(self, text, done)
   end, 3)
 end
 
--- "AHDB which "cloth": [Silk Cloth], [Wool Cloth], Linen Cloth, ... (+3 more)": closest (shortest) names first, as
--- links while they fit (~60 characters each), then as names. Links are sent as the client makes them: one with its
--- empty trailing fields cut was not delivered.
-local function which(query, matches)
+-- Closest (shortest) names first.
+local function sortMatches(matches)
   table.sort(matches, function(a, b)
     if #a.name ~= #b.name then return #a.name < #b.name end
     return a.name < b.name
   end)
+end
+
+local MAX_LISTED = 10 -- items listed by /ahdb commands when several names match
+
+-- Item argument of /ahdb commands (graph, price): link, itemID or name, as for !ahdb (ADB:FindItem). A single item of
+-- our price history matching part of the name is taken, several are listed (closest names first) to Alt-click.
+function ADB:CommandItem(rest, cmd, fn)
+  if rest == "" then
+    self:Print("usage: /ahdb %s <item name, itemID or shift-click an item> (or Alt-click any item)", cmd)
+    return
+  end
+  self:FindItem(rest, function(id, matches)
+    if not id and #matches == 1 then id = matches[1].id end
+    if id then return fn(id) end
+    if #matches == 0 then
+      self:Print("no item named \"%s\" in the price history%s", rest,
+                 #rest < MIN_SEARCH and (" (%d characters or more for part of a name)"):format(MIN_SEARCH) or "")
+      return
+    end
+    sortMatches(matches)
+    local links = {}
+    for i = 1, math.min(#matches, MAX_LISTED) do links[i] = matches[i].link or matches[i].name end
+    local more = #matches > MAX_LISTED and (" (+%d more)"):format(#matches - MAX_LISTED) or ""
+    self:Print("%d items match \"%s\", Alt-click one: %s%s", #matches, rest, table.concat(links, ", "), more)
+  end)
+end
+
+-- "AHDB which "cloth": [Silk Cloth], [Wool Cloth], Linen Cloth, ... (+3 more)": closest (shortest) names first, as
+-- links while they fit (~60 characters each), then as names. Links are sent as the client makes them: one with its
+-- empty trailing fields cut was not delivered.
+local function which(query, matches)
+  sortMatches(matches)
   local msg, n, names = ('%swhich "%s":'):format(ANSWER, query), 0, false
   local room = MAX_MESSAGE - #" (+999 more)"
   for _, m in ipairs(matches) do
@@ -262,7 +292,7 @@ local function onChat(self, channel, text, sender)
   if not cmd or cmd:lower() ~= "!ahdb" then return end
   local req = newRequest(channel) -- also ours, and with answers off: to match the answers to the requests
   if not self.db.chatAnswers or sender == self.myName then return end
-  findItem(self, rest, function(id, matches)
+  self:FindItem(rest, function(id, matches)
     if id then
       local house = prices(self, id)
       if not house then
