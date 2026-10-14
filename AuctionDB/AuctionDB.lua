@@ -108,8 +108,8 @@ ADB:On("ADDON_LOADED", function(self, name)
   sv.houses = sv.houses or {}
   -- itemIDs vendors refuse although the item data has a sell price (learned at merchants, see Vendor.lua)
   sv.unsellable = sv.unsellable or {[6947] = true} -- Instant Poison
-  -- full names of characters of other accounts we share prices with (Comm.lua)
-  sv.trusted = sv.trusted or {}
+  -- per faction: full names of characters of other accounts we share prices with (Comm.lua)
+  sv.trust = sv.trust or {}
   self.sv = sv
   self:LoadLog()
 end)

@@ -88,7 +88,8 @@ function ADB:SendGroup(channel, kind, payload, what)
   end
 end
 
--- sv.trusted: lower case name -> name (as typed, then as the server spells it once heard from)
+-- self.trusted = sv.trust[our faction] (whispers don't cross factions): lower case name -> name (as typed, then as
+-- the server spells it once heard from)
 ADB:On("CHAT_MSG_ADDON", function(self, prefix, text, channel, sender)
   if prefix ~= PREFIX then return end
   local kind, id, i, n, payload = text:match("^(%a);([^;]*);(%d+)/(%d+);(.*)$")
@@ -99,7 +100,7 @@ ADB:On("CHAT_MSG_ADDON", function(self, prefix, text, channel, sender)
     return
   end
   local lname = sender:lower()
-  if not self.sv.trusted[lname] then return end
+  if not self.trusted[lname] then return end
   i, n = tonumber(i), tonumber(n)
   local now = GetTime()
   if n > 1 then
@@ -121,7 +122,7 @@ ADB:On("CHAT_MSG_ADDON", function(self, prefix, text, channel, sender)
   if not self.peers[sender] then
     -- they only send to characters they trust: both sides are set
     self.peers[sender] = {scans = {}}
-    self.sv.trusted[lname] = sender
+    self.trusted[lname] = sender
     self:Print("linked with %s: prices are shared", sender)
   end
   checking[lname] = nil
@@ -144,7 +145,7 @@ end
 -- ask: they answer with theirs (when we just logged in or trusted them)
 function ADB:Announce(ask, to)
   local p = self:Presence()
-  for _, name in pairs(to and {to} or self.sv.trusted) do
+  for _, name in pairs(to and {to} or self.trusted) do
     if name ~= self.myName then self:Send(name, ask and "I" or "i", "0", p, "presence " .. p) end
   end
 end
@@ -179,10 +180,19 @@ end
 
 ADB:Listen("LOGIN", function(self)
   self.myName = GetUnitName("player", true)
-  -- entries as name -> true: by lower case name
-  local trusted = {}
-  for k, v in pairs(self.sv.trusted) do trusted[k:lower()] = v == true and k or v end
-  self.sv.trusted = trusted
+  local faction = self:PlayerHouse()
+  self.sv.trust[faction] = self.sv.trust[faction] or {}
+  self.trusted = self.sv.trust[faction]
+  if self.sv.trusted then
+    -- the list used to be for all factions, unknown which one each name is
+    local names = {}
+    for k, v in pairs(self.sv.trusted) do names[#names + 1] = v == true and k or v end
+    self.sv.trusted = nil
+    if #names > 0 then
+      self:Print("trusted characters are now per faction, /ahdb trust them again on characters of the same " ..
+                   "faction: %s", table.concat(names, ", "))
+    end
+  end
   C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
   ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, msg)
     msg = msg:lower()
@@ -311,7 +321,7 @@ ADB:AddCommand("trust", function(self, rest)
       self:Print("that's you: /ahdb trust <First Last> of a character of another account")
       return
     end
-    self.sv.trusted[lname] = name
+    self.trusted[lname] = name
     self:Print("%s trusted: prices are shared once it trusts you too (/ahdb trust %s there)", name, self.myName)
     -- the answer (or "not online") tells whether the link works
     checking[lname] = true
@@ -323,12 +333,13 @@ ADB:AddCommand("trust", function(self, rest)
     self:Announce(true, name)
     return
   end
-  if not next(self.sv.trusted) then
-    self:Print("no trusted characters: /ahdb trust <First Last> (or target it) here and the same for this one there")
+  if not next(self.trusted) then
+    self:Print("no trusted %s characters: /ahdb trust <First Last> (or target it) here and the same for this one there",
+               self:PlayerHouse())
     return
   end
-  self:Print("trusted characters (prices shared both ways):")
-  for _, n in pairs(self.sv.trusted) do
+  self:Print("trusted %s characters (prices shared both ways):", self:PlayerHouse())
+  for _, n in pairs(self.trusted) do
     local p = self.peers[n]
     if p then
       print(("  %s: online%s, last scans: Alliance %s, Horde %s, Neutral %s"):format(n, p.ah and
@@ -340,15 +351,16 @@ ADB:AddCommand("trust", function(self, rest)
       print(("  %s: not heard from (offline, or doesn't trust you)"):format(n))
     end
   end
-end, "trust [First Last] - share prices with that character of another account (both ways); no name: list")
+end, "trust [First Last] - share prices with that character of another account, same faction (both ways); " ..
+                 "no name: list")
 
 ADB:AddCommand("untrust", function(self, rest)
-  local name = self.sv.trusted[rest:lower()]
+  local name = self.trusted[rest:lower()]
   if not name then
     self:Print("%s isn't trusted (/ahdb trust lists them)", rest)
     return
   end
-  self.sv.trusted[rest:lower()] = nil
+  self.trusted[rest:lower()] = nil
   self.peers[name] = nil
   rest = name
   self:Print("%s no longer trusted", rest)
