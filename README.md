@@ -36,8 +36,8 @@ character parked at the AH, another one out in the world):
   characters show it in chat and add it to their price history.
 - Only between characters of the same faction (whispers don't cross factions): each faction has its own trusted
   characters. `/ahdb trust` lists who's trusted and online.
-- Out of the game, [ahdbmerge](https://github.com/mooreatv/AHDBapp#merging-price-history-between-your-wow-accounts-wow-forever)
-  merges the price history of all the accounts of a WoW install.
+- Out of the game, [ahdbmerge](https://github.com/mooreatv/AHDBapp#merging-price-history-between-your-wow-accounts-and-computers-wow-forever)
+  merges the price history of all the accounts of a WoW install, and keeps it in sync between your computers.
 
 ## What does it do?
 
