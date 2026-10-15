@@ -4,7 +4,8 @@
 -- - house.daily[itemID]: one rollup per older day, kept DAILY_DAYS days, "ts,min,median,qty,scans ..." oldest first:
 --   ts of the day's last scan, lowest min, median of the scans' medians, average quantity, number of scans.
 -- Days are UTC days of the server time.
--- Points from trusted characters (Comm.lua) are merged in: same scan (ts) kept once, same day combined.
+-- Points from trusted characters (Comm.lua) are merged in: same scan (ts) kept once, same day combined (unless one
+-- already includes the other).
 local _, ADB = ...
 
 local RECENT = 48 * 3600
@@ -93,8 +94,13 @@ local function lowest(a, b)
   return a
 end
 
--- Daily lists merged by day (oldest first): the same last scan is the same data, otherwise lowest min, median of the
--- one with more scans, scan weighted quantity, scans added.
+-- Whether the daily entry q can be p combined with later scans (later last scan, more scans, min as low): then it's
+-- taken as such (an older copy of the same day coming back, e.g. from a trusted character that merged ours) instead of
+-- counting p's scans twice.
+local function includes(q, p) return q[1] > p[1] and q[5] > p[5] and lowest(q[2], p[2]) == q[2] end
+
+-- Daily lists merged by day (oldest first): the same last scan is the same data, one that includes the other is kept,
+-- otherwise lowest min, median of the one with more scans, scan weighted quantity, scans added.
 local function mergeDaily(a, b)
   if #b == 0 then return a end
   if #a == 0 then return b end
@@ -106,7 +112,9 @@ local function mergeDaily(a, b)
       if not q then
         byDay[d] = p
         days[#days + 1] = d
-      elseif q[1] ~= p[1] then
+      elseif includes(p, q) then
+        byDay[d] = p
+      elseif q[1] ~= p[1] and not includes(q, p) then
         local n = q[5] + p[5]
         local med = q[5] >= p[5] and q[3] or p[3]
         if med == 0 then med = math.max(q[3], p[3]) end
