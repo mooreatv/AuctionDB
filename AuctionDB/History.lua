@@ -1,6 +1,7 @@
 -- Price history per auction house and item, kept as strings (much smaller saved variables, faster to load, than tables):
--- - house.items[itemID]: every scan of the last RECENT seconds, "ts,min,median,qty ts,min,median,qty ..." oldest first
---   (unit buyouts, min/median 0 when there were only bids).
+-- - house.items[itemID]: every scan of the recent days, "ts,min,median,qty ts,min,median,qty ..." oldest first
+--   (unit buyouts, min/median 0 when there were only bids). Recent days: those of the house's last RECENT_SCANS scans,
+--   at most RECENT_DAYS days (today included).
 -- - house.daily[itemID]: one rollup per older day, kept DAILY_DAYS days, "ts,min,median,qty,scans ..." oldest first:
 --   ts of the day's last scan, lowest min, median of the scans' medians, average quantity, number of scans.
 -- Days are UTC days of the server time.
@@ -8,11 +9,21 @@
 -- already includes the other).
 local _, ADB = ...
 
-local RECENT = 48 * 3600
+-- same rule in ahdbmerge (AHDBapp merge.go)
+local RECENT_SCANS = 30
+local RECENT_DAYS = 7
 local DAILY_DAYS = 180
 local DAY = 86400
 
 local function day(ts) return math.floor(ts / DAY) end
+
+-- First day kept as single scans at the house (older ones are rolled into daily entries).
+local function recentDay(house, now)
+  local first = day(now) - RECENT_DAYS + 1
+  local scans = house.scans
+  if #scans >= RECENT_SCANS then first = math.max(first, day(scans[#scans - RECENT_SCANS + 1][1])) end
+  return first
+end
 
 local function point(s)
   local p = {}
@@ -43,8 +54,8 @@ local function store(t, id, list)
   t[id] = s ~= "" and s or nil
 end
 
--- Start of the oldest day kept as single scans.
-function ADB:RecentStart() return day(GetServerTime() - RECENT) * DAY end
+-- Start of the oldest day kept as single scans at that house.
+function ADB:RecentStart(house) return recentDay(self:House(house), GetServerTime()) * DAY end
 
 -- Lowest and quantity weighted median unit price of a list of {unitPrice, count} (sorted in place); 0, 0 if empty.
 function ADB:PriceStats(units)
@@ -133,10 +144,10 @@ function ADB:AddHistoryPoint(house, id, ts, minU, median, qty)
   house.items[id] = append(house.items[id], ("%d,%.0f,%.0f,%d"):format(ts, minU, median, qty))
 end
 
--- Rolls the scans of the days before the RECENT window into daily entries and drops the daily entries older than
+-- Rolls the scans of the days before the recent ones into daily entries and drops the daily entries older than
 -- DAILY_DAYS, for every item of the house (only items with something to move get decoded).
 function ADB:CompactHistory(house, now)
-  local cutoff = day(now - RECENT)
+  local cutoff = recentDay(house, now)
   local oldest = now - DAILY_DAYS * DAY
   local rolled = 0
   for id, s in pairs(house.items) do
@@ -190,7 +201,7 @@ end
 -- Adds scan points ({ts, min, median, qty}, any order) and daily entries from another character; points of days
 -- already rolled up go into the daily ones. Returns how many points / entries were new.
 function ADB:MergeHistory(house, id, recent, daily)
-  local cutoff = day(GetServerTime() - RECENT)
+  local cutoff = recentDay(house, GetServerTime())
   local mine = decode(house.items[id])
   local seen = {}
   for _, p in ipairs(mine) do seen[p[1]] = true end

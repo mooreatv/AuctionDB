@@ -210,10 +210,10 @@ function ADB:RecordHistory(e)
     self:AddHistoryPoint(self.scanHouse, id, ts, minU, median, t.qty)
   end
   e.current = nil
-  self:CompactHistory(self.scanHouse, ts)
   local scans = self.scanHouse.scans
   scans[#scans + 1] = {ts, e.n, nItems}
   while #scans > 100 do table.remove(scans, 1) end
+  self:CompactHistory(self.scanHouse, ts)
   e.byItem = byItem
   e.nItems = nItems
 end

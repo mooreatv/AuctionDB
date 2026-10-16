@@ -1,11 +1,17 @@
--- Item price history window (/ahdb price <item>, Alt-click any item): min to median unit price of each scan (last 48h)
--- or day (30 / 180 days) as bars, quantity up below them, vendor price as a green line. Hover for the values.
+-- Item price history window (/ahdb price <item>, Alt-click any item): min to median unit price of each recent scan or
+-- day (30 / 180 days) as bars, quantity up below them, vendor price as a green line. Hover for the values.
 local _, ADB = ...
 
-local W, H, QH = 480, 170, 30 -- plot and quantity strip sizes
-local RANGES = {{"48h", 2 * 86400}, {"30d", 30 * 86400}, {"180d", 180 * 86400}}
+local FW = 600 -- window width
+local H, QH = 170, 30 -- plot and quantity strip heights (the plot width depends on the price labels on its left)
+local RIGHT = 24 -- space right of the plot
+local W = 480 -- plot width
+-- {button, days (nil: each recent scan), what's shown}
+local RANGES = {{"Recent", nil, "recent scans"}, {"30d", 30, "last 30 days"}, {"180d", 180, "last 180 days"}}
 local HOUSES = {"Alliance", "Horde", "Neutral"}
 local DAY = 86400
+local GROUP_GAP = 3600 -- recent scans further apart than this are separate groups, with a break instead of the hours
+local MAX_BAR = 14 -- widest bar of a recent scan
 
 local frame
 local pools = {}
@@ -75,7 +81,7 @@ end
 
 local function build()
   frame = CreateFrame("Frame", "AuctionDBItemFrame", UIParent, "BackdropTemplate")
-  frame:SetSize(600, 372)
+  frame:SetSize(FW, 372)
   local pos = savedState().pos
   if pos then
     frame:SetPoint(pos[1], UIParent, pos[2], pos[3], pos[4])
@@ -133,18 +139,21 @@ local function build()
     frame.houseButtons[i] = b
   end
   frame.rangeButtons = {}
+  local right = 20
   for i = #RANGES, 1, -1 do
     local b = button(frame, RANGES[i][1], 50, function()
       frame.range = i
       savedState().range = i
       draw()
     end)
-    b:SetPoint("TOPRIGHT", -20 - (#RANGES - i) * 52, -68)
+    b:SetWidth(math.max(50, b:GetTextWidth() + 24))
+    b:SetPoint("TOPRIGHT", -right, -68)
+    right = right + b:GetWidth() + 2
     frame.rangeButtons[i] = b
   end
   -- current prices from a trusted character at an open AH (Live.lua)
   frame.live = button(frame, "Live", 50, function() ADB:AskLive(frame.itemID) end)
-  frame.live:SetPoint("TOPRIGHT", -20 - #RANGES * 52 - 8, -68)
+  frame.live:SetPoint("TOPRIGHT", -right - 8, -68)
   frame.live:SetMotionScriptsWhileDisabled(true)
   frame.live:SetScript("OnEnter", function(b)
     local peer, house = ADB:LivePeer()
@@ -203,7 +212,7 @@ local function build()
   frame.xleft:SetPoint("TOPLEFT", qty, "BOTTOMLEFT", 0, -3)
   frame.xright = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   frame.xright:SetPoint("TOPRIGHT", qty, "BOTTOMRIGHT", 0, -3)
-  frame.xright:SetText("now")
+  frame.xlabels = {} -- time of each group of recent scans
 
   frame.stats = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   frame.stats:SetPoint("BOTTOMLEFT", 22, 20)
@@ -215,6 +224,76 @@ local function lowest(list)
   local best
   for _, p in ipairs(list) do if p[2] > 0 and (not best or p[2] < best[2]) then best = p end end
   return best
+end
+
+-- Price of a grid line, rounded to what's worth reading: whole gold from 100g, whole silver from 1g.
+local function roundPrice(v)
+  local unit = v >= 1000000 and 10000 or v >= 10000 and 100 or 1
+  return math.floor(v / unit + 0.5) * unit
+end
+
+-- Plot (and quantity strip) as wide as the window allows after the price labels on its left.
+local function layout(labelWidth)
+  local left = math.max(60, labelWidth + 30)
+  W = FW - left - RIGHT
+  frame.plot:SetPoint("TOPLEFT", left, -104)
+  frame.plot:SetWidth(W)
+  frame.qty:SetWidth(W)
+end
+
+-- i-th time label under the quantity strip, x from its left.
+local function xlabel(i, x, text)
+  local l = frame.xlabels[i]
+  if not l then
+    l = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    frame.xlabels[i] = l
+  end
+  l:SetText(text)
+  l:ClearAllPoints()
+  l:SetPoint("TOPLEFT", frame.qty, "BOTTOMLEFT", x, -3)
+  l:Show()
+  return l
+end
+
+-- Recent scans side by side, by groups of scans close in time with a break line between groups (instead of the hours
+-- without scans), each group's time under its first scan when there's room.
+local function placeRecent(pts)
+  local starts = {}
+  for i, p in ipairs(pts) do if i == 1 or p[1] - pts[i - 1][1] > GROUP_GAP then starts[i] = true end end
+  local breaks = -1
+  for _ in pairs(starts) do breaks = breaks + 1 end
+  local slot = W / (#pts + breaks)
+  local gap = slot
+  if slot < 8 and breaks > 0 then
+    gap = math.min(8, W / 4 / breaks)
+    slot = (W - gap * breaks) / #pts
+  end
+  local bw = math.max(2, math.min(slot - 1, MAX_BAR))
+  local x, nb, nl, labelEnd = 0, 0, 0, -math.huge
+  for i, p in ipairs(pts) do
+    if starts[i] then
+      if i > 1 then
+        nb = nb + 1
+        local b = tex("break", frame.plot, nb, "BORDER", 1, 1, 1, 0.3)
+        b:SetPoint("BOTTOMLEFT", frame.plot, "BOTTOMLEFT", x + gap / 2, -QH - 4)
+        b:SetSize(1, H + QH + 4)
+        x = x + gap
+      end
+      local text = date(GetServerTime() - p[1] > 6 * DAY and "%b %d %H:%M" or "%a %H:%M", p[1])
+      local l = xlabel(nl + 1, 0, text)
+      local lw = l:GetStringWidth()
+      local lx = math.max(0, math.min(x, W - lw))
+      if lx >= labelEnd + 6 then
+        nl = nl + 1
+        xlabel(nl, lx, text)
+        labelEnd = lx + lw
+      else
+        l:Hide()
+      end
+    end
+    p.x, p.w = x + (slot - bw) / 2, bw
+    x = x + slot
+  end
 end
 
 draw = function()
@@ -257,33 +336,23 @@ draw = function()
     end
   end
 
-  -- points in the range with their x position and width
-  local daily = range > 1
-  local span = RANGES[range][2]
-  local from = now - span
+  -- points in the range (placed once the plot width is known)
+  local days = RANGES[range][2]
+  local daily = days ~= nil
+  local first = daily and math.floor(now / DAY) - days + 1
   local pts = {}
   if daily then
-    local days = span / DAY
-    local first = math.floor(now / DAY) - days + 1
-    local w = W / days
     for _, p in ipairs(self:DailyHistory(id, house)) do
-      local d = math.floor(p[1] / DAY) - first
-      if d >= 0 then
-        p.x, p.w = d * w, math.max(2, w - 1)
-        pts[#pts + 1] = p
-      end
+      p.d = math.floor(p[1] / DAY) - first
+      if p.d >= 0 then pts[#pts + 1] = p end
     end
-    frame.xleft:SetText(date("%b %d", first * DAY))
   else
-    for _, p in ipairs(self:RecentHistory(id, house)) do
-      if p[1] >= from then
-        p.x, p.w = (p[1] - from) / span * W - 1.5, 3
-        pts[#pts + 1] = p
-      end
-    end
-    frame.xleft:SetText(date("%a %H:%M", from))
+    pts = self:RecentHistory(id, house)
   end
   frame.points = pts
+  for _, l in ipairs(frame.xlabels) do l:Hide() end
+  frame.xleft:SetText(daily and date("%b %d", first * DAY) or "")
+  frame.xright:SetText(daily and "now" or "")
 
   -- price scale: lowest min to the highest median (95th percentile when there are many, so one silly listing doesn't
   -- flatten everything), the vendor price too when it's close
@@ -299,8 +368,9 @@ draw = function()
   frame.vendorLabel:Hide()
   frame.qmax:SetText("")
   if not lo then
-    frame.empty:SetText(("%s at the %s AH in the last %s"):format(#pts > 0 and "Only bids (no buyout)" or "Not seen",
-                                                                  house, RANGES[range][1]))
+    layout(0)
+    frame.empty:SetText(("%s at the %s AH in the %s"):format(#pts > 0 and "Only bids (no buyout)" or "Not seen", house,
+                                                             RANGES[range][3]))
     frame.empty:Show()
     frame.stats:SetText("")
     return
@@ -312,16 +382,28 @@ draw = function()
   lo, hi = math.max(0, lo - pad), hi + pad
   local function y(v) return math.max(0, math.min(1, (v - lo) / (hi - lo))) * H end
 
+  -- price labels first: the plot starts after the widest one
+  local grid, labelWidth = {}, 0
   for i = 1, 3 do
-    local v = lo + (hi - lo) * (i - 1) / 2
+    grid[i] = roundPrice(lo + (hi - lo) * (i - 1) / 2)
+    local l = frame.ylabels[i]
+    l:SetText(self:Money(grid[i]))
+    l:ClearAllPoints()
+    l:SetPoint("RIGHT", frame.plot, "BOTTOMLEFT", -4, y(grid[i]))
+    l:Show()
+    labelWidth = math.max(labelWidth, l:GetStringWidth())
+  end
+  layout(labelWidth)
+  for i, v in ipairs(grid) do
     local g = tex("grid", frame.plot, i, "BORDER", 1, 1, 1, 0.08)
     g:SetPoint("BOTTOMLEFT", frame.plot, "BOTTOMLEFT", 0, y(v))
     g:SetSize(W, 1)
-    local l = frame.ylabels[i]
-    l:ClearAllPoints()
-    l:SetPoint("RIGHT", frame.plot, "BOTTOMLEFT", -4, y(v))
-    l:SetText(self:Money(v))
-    l:Show()
+  end
+  if daily then
+    local w = W / days
+    for _, p in ipairs(pts) do p.x, p.w = p.d * w, math.max(2, w - 1) end
+  else
+    placeRecent(pts)
   end
   if vp and vp >= lo and vp <= hi then
     local v = tex("vendor", frame.plot, 1, "ARTWORK", 0.2, 1, 0.2, 0.8)
@@ -354,9 +436,9 @@ draw = function()
   end
 
   -- typical price over the last week / month (median of the daily medians), lowest min in the range shown
-  local function typical(days)
+  local function typical(n)
     local meds2 = {}
-    for _, p in ipairs(self:DailyHistory(id, house)) do if p[1] >= now - days * DAY then meds2[#meds2 + 1] = p[3] end end
+    for _, p in ipairs(self:DailyHistory(id, house)) do if p[1] >= now - n * DAY then meds2[#meds2 + 1] = p[3] end end
     return self:Median(meds2)
   end
   local low = lowest(pts)
