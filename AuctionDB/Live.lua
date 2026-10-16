@@ -70,7 +70,7 @@ local function finish(self, units, qty)
   self:AddHistoryPoint(self:House(c.house), c.id, ts, minU, median, qty)
   self:Print("live search of %s for %s: min %s, median %s, %d listed", itemName(c.id), c.peer, self:Money(minU),
              self:Money(median), qty)
-  self:Send(c.peer, "R", c.qid, ("%s,%d,%d,%d,%d"):format(c.house, ts, minU, median, qty),
+  self:Send(c.peer, "R", c.qid, ("%s,%d,%.0f,%.0f,%d"):format(c.house, ts, minU, median, qty),
             "live result for item " .. c.id)
   self:Fire("HISTORY_MERGED", c.id, c.house, self.myName, 1)
 end

@@ -178,7 +178,11 @@ function ADB:ReadReplicate()
     end
     self:Debug("read %d entries (%d with a bid) in %.1fs", e.n, withBids, GetTime() - self.scanStart)
     e.withBids = withBids
-    self:RecordHistory(e)
+    local ok, err = pcall(self.RecordHistory, self, e)
+    if not ok then
+      self:ScanFailed(e, err)
+      return
+    end
     self:ScanDone(e)
   end
   step()
@@ -200,10 +204,12 @@ function ADB:RecordHistory(e)
   local ts = GetServerTime()
   local nItems = 0
   for id, t in pairs(byItem) do
+    e.current = id
     nItems = nItems + 1
     local minU, median = self:PriceStats(t.units)
     self:AddHistoryPoint(self.scanHouse, id, ts, minU, median, t.qty)
   end
+  e.current = nil
   self:CompactHistory(self.scanHouse, ts)
   local scans = self.scanHouse.scans
   scans[#scans + 1] = {ts, e.n, nItems}
@@ -220,6 +226,21 @@ function ADB:ScanDone(e)
              e.withBids)
   self:Fire("SCAN_STATE")
   self:Fire("SCAN_DATA", e)
+end
+
+-- Error while recording the scan: say so (with the item being recorded, if any) instead of staying "in progress".
+function ADB:ScanFailed(e, err)
+  self.scanState = nil
+  self:Print("|cFFFF0000scan failed|r (item %s): %s", tostring(e.current), tostring(err))
+  if e.current then
+    for k = 1, e.n do
+      if e.item[k] == e.current then
+        self:Debug("auction %s: count %s, buyout %s, bid %s", tostring(e.idx[k]), tostring(e.count[k]),
+                   tostring(e.buyout[k]), tostring(e.bid[k]))
+      end
+    end
+  end
+  self:Fire("SCAN_STATE")
 end
 
 -- Scan button text and whether it can be clicked: "Scan", "Scanning" or the time left before the next scan.

@@ -128,8 +128,9 @@ local function mergeDaily(a, b)
   return out
 end
 
+-- %.0f, not %d: the client's %d is 32 bits and some prices are higher (1M gold listings: 10^10 copper).
 function ADB:AddHistoryPoint(house, id, ts, minU, median, qty)
-  house.items[id] = append(house.items[id], ("%d,%d,%d,%d"):format(ts, minU, median, qty))
+  house.items[id] = append(house.items[id], ("%d,%.0f,%.0f,%d"):format(ts, minU, median, qty))
 end
 
 -- Rolls the scans of the days before the RECENT window into daily entries and drops the daily entries older than
