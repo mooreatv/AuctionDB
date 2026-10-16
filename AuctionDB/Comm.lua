@@ -264,7 +264,7 @@ function ADB:AskHistory(id, houses, full)
     keys[i] = askKey(peer, house, id, full)
     asked[keys[i]] = self.peers[peer].scans[house]
     local last = self:LastPrice(id, house)
-    local since = (full or not last) and self:RecentStart() - 1 or last[1]
+    local since = (full or not last) and self:RecentStart(house) - 1 or last[1]
     parts[i] = ("%s:%d:%d"):format(house, since, (full or not last) and 1 or 0)
   end
   local qid = self:NewMessageID()
