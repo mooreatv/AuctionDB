@@ -1,4 +1,4 @@
--- /<addon> bug: a window with the recent output of the addon (timestamped) in a selectable edit box, to copy/paste
+-- /<addon> bug: a (resizable) window with the recent output of the addon (timestamped) in a selectable edit box, to copy/paste
 -- into a report. Same file in each addon, keep the copies identical: the addon table provides
 --   log     = list of lines (may be replaced by a new table once the saved variables are loaded)
 --   logName = short name for the title and help, e.g. "AHDB"
@@ -23,10 +23,22 @@ local function build()
   })
   frame:EnableMouse(true)
   frame:SetMovable(true)
+  frame:SetResizable(true)
+  frame:SetResizeBounds(640, 200, UIParent:GetWidth(), UIParent:GetHeight()) -- the title needs the width
+  frame:SetClampedToScreen(true)
   frame:RegisterForDrag("LeftButton")
   frame:SetScript("OnDragStart", frame.StartMoving)
   frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
   tinsert(UISpecialFrames, addonName .. "BugFrame") -- Escape closes it
+
+  local grip = CreateFrame("Button", nil, frame)
+  grip:SetSize(16, 16)
+  grip:SetPoint("BOTTOMRIGHT", -7, 7)
+  grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+  grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+  grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+  grip:SetScript("OnMouseDown", function() frame:StartSizing("BOTTOMRIGHT") end)
+  grip:SetScript("OnMouseUp", function() frame:StopMovingOrSizing() end)
 
   local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   title:SetPoint("TOP", 0, -16)
@@ -44,6 +56,7 @@ local function build()
   edit:SetAutoFocus(false)
   edit:SetFontObject("ChatFontNormal")
   edit:SetWidth(570)
+  scroll:SetScript("OnSizeChanged", function(_, w) edit:SetWidth(w - 10) end) -- lines wrap at the window width
   edit:SetScript("OnEscapePressed", function() frame:Hide() end)
   -- Keep the cursor in view: drag-selecting past the top/bottom edge scrolls. Done in OnUpdate as
   -- the scroll range lags the edit box height by a frame after SetText.
