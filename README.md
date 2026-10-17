@@ -20,6 +20,7 @@ history, even away from the AH:
   hours without scans), per day for the last 30 or 180 days. Hover for the values.
 - The quantity listed is under the graph, the vendor price is the green line.
 - 7 and 30 day median prices and the lowest price seen, for each auction house (Alliance, Horde, Neutral).
+- Drag the bottom right corner to make the window bigger, it keeps its size and place.
 - Each auction house's last 30 scans are kept (whole days, up to 7 days), then one summary per day for 180 days, so the
   saved data stays small even when scanning every 15 minutes.
 

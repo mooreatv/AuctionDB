@@ -1,9 +1,11 @@
 -- Item price history window (/ahdb price <item>, Alt-click any item): min to median unit price of each recent scan or
--- day (30 / 180 days) as bars, quantity up below them, vendor price as a green line. Hover for the values.
+-- day (30 / 180 days) as bars, quantity up below them, vendor price as a green line. Hover for the values. Resizable.
 local _, ADB = ...
 
-local FW = 600 -- window width
-local H, QH = 170, 30 -- plot and quantity strip heights (the plot width depends on the price labels on its left)
+local FW, FH = 600, 372 -- default and smallest window size (resizable from its bottom right corner)
+local H, QH = 170, 30 -- plot and quantity strip heights (the plot grows with the window, its width also depends on
+-- the price labels on its left)
+local NOT_PLOT = FH - H -- window height that isn't the plot
 local RIGHT = 24 -- space right of the plot
 local W = 480 -- plot width
 -- {button, days (nil: each recent scan), what's shown}
@@ -79,9 +81,17 @@ local function hover(f)
   GameTooltip:Show()
 end
 
+local function savePlace(f)
+  local p, _, rp, x, y = f:GetPoint()
+  savedState().pos = {p, rp, x, y}
+end
+
 local function build()
   frame = CreateFrame("Frame", "AuctionDBItemFrame", UIParent, "BackdropTemplate")
-  frame:SetSize(FW, 372)
+  local maxW, maxH = UIParent:GetWidth(), UIParent:GetHeight()
+  local size = savedState().size or {FW, FH}
+  frame:SetSize(math.max(FW, math.min(maxW, size[1])), math.max(FH, math.min(maxH, size[2])))
+  H = frame:GetHeight() - NOT_PLOT
   local pos = savedState().pos
   if pos then
     frame:SetPoint(pos[1], UIParent, pos[2], pos[3], pos[4])
@@ -99,14 +109,29 @@ local function build()
   })
   frame:EnableMouse(true)
   frame:SetMovable(true)
+  frame:SetResizable(true)
+  frame:SetResizeBounds(FW, FH, maxW, maxH)
+  frame:SetClampedToScreen(true)
   frame:RegisterForDrag("LeftButton")
   frame:SetScript("OnDragStart", frame.StartMoving)
   frame:SetScript("OnDragStop", function(f)
     f:StopMovingOrSizing()
-    local p, _, rp, x, y = f:GetPoint()
-    savedState().pos = {p, rp, x, y}
+    savePlace(f)
   end)
   tinsert(UISpecialFrames, "AuctionDBItemFrame") -- Escape closes it
+
+  local grip = CreateFrame("Button", nil, frame)
+  grip:SetSize(16, 16)
+  grip:SetPoint("BOTTOMRIGHT", -7, 7)
+  grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+  grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+  grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+  grip:SetScript("OnMouseDown", function() frame:StartSizing("BOTTOMRIGHT") end)
+  grip:SetScript("OnMouseUp", function()
+    frame:StopMovingOrSizing()
+    savePlace(frame)
+    savedState().size = {frame:GetSize()}
+  end)
 
   local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
   close:SetPoint("TOPRIGHT", -6, -6)
@@ -217,7 +242,19 @@ local function build()
   frame.stats = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   frame.stats:SetPoint("BOTTOMLEFT", 22, 20)
   frame.share = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  frame.share:SetPoint("BOTTOMRIGHT", -22, 21)
+  frame.share:SetPoint("BOTTOMRIGHT", -28, 21)
+
+  -- redrawn at the new size, once per frame while resizing
+  local pending
+  frame:SetScript("OnSizeChanged", function(_, _, h)
+    H = h - NOT_PLOT
+    if pending then return end
+    pending = true
+    C_Timer.After(0, function()
+      pending = false
+      if frame:IsShown() and frame.itemID then draw() end
+    end)
+  end)
 end
 
 local function lowest(list)
@@ -235,9 +272,9 @@ end
 -- Plot (and quantity strip) as wide as the window allows after the price labels on its left.
 local function layout(labelWidth)
   local left = math.max(60, labelWidth + 30)
-  W = FW - left - RIGHT
+  W = frame:GetWidth() - left - RIGHT
   frame.plot:SetPoint("TOPLEFT", left, -104)
-  frame.plot:SetWidth(W)
+  frame.plot:SetSize(W, H)
   frame.qty:SetWidth(W)
 end
 
