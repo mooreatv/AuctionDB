@@ -1,4 +1,6 @@
 @echo off
-rem Installs the addon in the WoW Forever beta; edit WOW below if needed.
-set WOW=C:\Program Files (x86)\World of Warcraft\_classic_beta_\Interface\AddOns
-xcopy /i /y /s "%~dp0AuctionDB\*.*" "%WOW%\AuctionDB"
+rem Installs the addon in the WoW Forever beta and retail; edit WOW below if needed.
+set WOW=C:\World of Warcraft
+for %%G in (_forever_ _classic_beta_ _retail_) do (
+  if exist "%WOW%\%%G\Interface\AddOns" xcopy /i /y /s "%~dp0AuctionDB\*.*" "%WOW%\%%G\Interface\AddOns\AuctionDB"
+)

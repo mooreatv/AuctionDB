@@ -95,11 +95,23 @@ function ADB:Scan(force)
   end)
 end
 
+-- Trial (starter) accounts can't use the auction house: the server opens nothing and a scan would only time out.
+local function limitedAccount()
+  return (IsTrialAccount and IsTrialAccount()) or (IsVeteranTrialAccount and IsVeteranTrialAccount()) or
+           (GameLimitedMode_IsActive and GameLimitedMode_IsActive())
+end
+
 ADB:On("AUCTION_HOUSE_SHOW", function(self)
+  if limitedAccount() then
+    self:Print("the auction house isn't available to trial accounts: nothing to scan")
+    return
+  end
   self.ahOpen = true
   -- faction auctioneers belong to Alliance or Horde, the goblin (neutral) ones to neither
   self.house = UnitFactionGroup("npc") or "Neutral"
   self.sv.lastHouse = self.house
+  -- on retail the AH UI may not be loaded yet when this event reaches us
+  if not AuctionHouseFrame then C_AddOns.LoadAddOn("Blizzard_AuctionHouseUI") end
   self:Fire("AH_SHOW")
   if self.db.autoScan and not IsShiftKeyDown() and self:CanScan() then self:Scan() end
 end)

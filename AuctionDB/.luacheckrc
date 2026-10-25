@@ -53,5 +53,8 @@ read_globals = {
   "TooltipDataProcessor",
   "UIParent",
   "UnitFactionGroup",
+  "IsTrialAccount",
+  "IsVeteranTrialAccount",
+  "GameLimitedMode_IsActive",
   "wipe",
 }
