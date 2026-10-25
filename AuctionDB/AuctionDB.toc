@@ -1,4 +1,4 @@
-## Interface: 16001
+## Interface: 16001, 120105
 ## Title: Auction House DataBase (AHDB)
 ## Notes: Full AH scans, price history graphs (Alt-click any item), vendor and AH prices in tooltips, warns before selling below vendor price (|cFF99E5FF/ahdb|r)
 ## Notes: WoW Forever edition
