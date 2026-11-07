@@ -7,6 +7,7 @@
 -- Days are UTC days of the server time.
 -- Points from trusted characters (Comm.lua) are merged in: same scan (ts) kept once, same day combined (unless one
 -- already includes the other).
+-- The history from before the WoW Forever launch (the stress test of late October, same _forever_ folder) is dropped.
 local _, ADB = ...
 
 -- same rule in ahdbmerge (AHDBapp merge.go)
@@ -14,12 +15,22 @@ local RECENT_SCANS = 30
 local RECENT_DAYS = 7
 local DAILY_DAYS = 180
 local DAY = 86400
+-- WoW Forever (WOW_PROJECT_ID 18) launched 2026-11-04, the stress test ended before 2026-11-01 00:00 UTC (a day
+-- start): kept from then on; everything kept elsewhere
+local LAUNCH = WOW_PROJECT_ID == 18 and 1793491200 or 0
 
 local function day(ts) return math.floor(ts / DAY) end
 
+-- The points of list ({ts, ...}) from the launch on.
+local function sinceLaunch(list)
+  local keep = {}
+  for _, p in ipairs(list) do if p[1] >= LAUNCH then keep[#keep + 1] = p end end
+  return keep
+end
+
 -- First day kept as single scans at the house (older ones are rolled into daily entries).
 local function recentDay(house, now)
-  local first = day(now) - RECENT_DAYS + 1
+  local first = math.max(day(now) - RECENT_DAYS + 1, day(LAUNCH))
   local scans = house.scans
   if #scans >= RECENT_SCANS then first = math.max(first, day(scans[#scans - RECENT_SCANS + 1][1])) end
   return first
@@ -145,10 +156,12 @@ function ADB:AddHistoryPoint(house, id, ts, minU, median, qty)
 end
 
 -- Rolls the scans of the days before the recent ones into daily entries and drops the daily entries older than
--- DAILY_DAYS, for every item of the house (only items with something to move get decoded).
+-- DAILY_DAYS, for every item of the house (only items with something to move get decoded). The scans from before the
+-- launch are dropped, their prices rolled into daily entries before the launch, so dropped with them.
 function ADB:CompactHistory(house, now)
+  house.scans = sinceLaunch(house.scans)
   local cutoff = recentDay(house, now)
-  local oldest = now - DAILY_DAYS * DAY
+  local oldest = math.max(now - DAILY_DAYS * DAY, LAUNCH)
   local rolled = 0
   for id, s in pairs(house.items) do
     local first = tonumber(s:match("^(%d+)"))
@@ -199,8 +212,10 @@ function ADB:StoredDaily(itemID, house)
 end
 
 -- Adds scan points ({ts, min, median, qty}, any order) and daily entries from another character; points of days
--- already rolled up go into the daily ones. Returns how many points / entries were new.
+-- already rolled up go into the daily ones, those from before the launch are ignored. Returns how many points / entries
+-- were new.
 function ADB:MergeHistory(house, id, recent, daily)
+  recent, daily = sinceLaunch(recent), sinceLaunch(daily)
   local cutoff = recentDay(house, GetServerTime())
   local mine = decode(house.items[id])
   local seen = {}
@@ -302,10 +317,14 @@ end
 ADB:Listen("SCAN_DATA", function() wipe(typical) end)
 ADB:Listen("HISTORY_MERGED", function() wipe(typical) end)
 
--- Earlier versions kept the last 30 scans per item as tables: convert them (the next scan rolls the old ones up).
+-- Earlier versions kept the last 30 scans per item as tables: convert them (the next scan rolls the old ones up). The
+-- history from before the launch saved by earlier versions (or brought back by an earlier ahdbmerge) is dropped.
 ADB:Listen("LOGIN", function(self)
+  local now = GetServerTime()
   for _, house in pairs(self.sv.houses) do
     house.daily = house.daily or {}
+    house.scans = house.scans or {}
     for id, h in pairs(house.items) do if type(h) == "table" then store(house.items, id, h) end end
+    if LAUNCH > 0 then self:CompactHistory(house, now) end
   end
 end)

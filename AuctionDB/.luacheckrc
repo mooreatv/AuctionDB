@@ -57,4 +57,5 @@ read_globals = {
   "IsVeteranTrialAccount",
   "GameLimitedMode_IsActive",
   "wipe",
+  "WOW_PROJECT_ID",
 }
