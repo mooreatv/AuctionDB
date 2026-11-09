@@ -6,7 +6,8 @@
 -- - saved.ah: list of scans {realm, faction, char, ts, count, itemsCount, itemDBcount, elapsed, dataFormatVersion 6,
 --   data}, data = "key!seller/timeLeft,count,minBid,buyout,curBid&auction2...!seller2/... key2!..." (zeros left out).
 -- Forever differences: no seller names in full scans (empty seller), timeLeft is the AuctionHouseTimeLeftBand + 1
--- (1 = short, as the classic values), faction is the auction house (Alliance, Horde or Neutral).
+-- (1 = short, as the classic values), faction is the auction house (Alliance, Horde or Neutral), realm is the region
+-- and ruleset (ADB.realm, e.g. "na-forever-rp": auction houses are per ruleset, home realms are hidden).
 local _, ADB = ...
 
 local ITEM_DB = "itemDB_2"
@@ -77,7 +78,7 @@ function ADB:RecordScan(e)
   local ah = self.sv.ah or {}
   self.sv.ah = ah
   ah[#ah + 1] = {
-    realm = GetRealmName(),
+    realm = self.realm or GetRealmName(),
     faction = self.scanHouseName,
     char = GetUnitName("player", true),
     ts = GetServerTime(),
@@ -92,7 +93,7 @@ function ADB:RecordScan(e)
   -- keep the last keepScans scans of each auction house
   local seen = {}
   for i = #ah, 1, -1 do
-    local f = ah[i].faction
+    local f = tostring(ah[i].realm) .. " " .. tostring(ah[i].faction)
     seen[f] = (seen[f] or 0) + 1
     if seen[f] > self.db.keepScans then table.remove(ah, i) end
   end

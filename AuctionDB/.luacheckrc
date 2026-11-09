@@ -23,6 +23,8 @@ read_globals = {
   "C_CurrencyInfo",
   "C_Container",
   "C_CVar",
+  "C_GameRules",
+  "GetCurrentRegionName",
   "C_Item",
   "C_TooltipInfo",
   "C_Timer",

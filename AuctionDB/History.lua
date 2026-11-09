@@ -194,20 +194,20 @@ end
 
 -- Every scan point {ts, min, median, qty} of the last 2 days, oldest first.
 function ADB:RecentHistory(itemID, house)
-  local h = self.sv.houses[house]
+  local h = self:SavedHouse(house)
   return decode(h and h.items[itemID])
 end
 
 -- {ts, min, median, qty, scans} per day, oldest first, up to today (recent scans rolled up on the fly).
 function ADB:DailyHistory(itemID, house)
-  local h = self.sv.houses[house]
+  local h = self:SavedHouse(house)
   if not h then return {} end
   return mergeDaily(decode(h.daily[itemID]), rollup(decode(h.items[itemID])))
 end
 
 -- The daily entries as stored (without the recent scans), oldest first.
 function ADB:StoredDaily(itemID, house)
-  local h = self.sv.houses[house]
+  local h = self:SavedHouse(house)
   return decode(h and h.daily[itemID])
 end
 
@@ -286,7 +286,7 @@ end
 
 -- Latest {ts, min, median, qty} for the item at that auction house: last scan that saw it, else its last day.
 function ADB:LastPrice(itemID, house)
-  local h = self.sv.houses[house]
+  local h = self:SavedHouse(house)
   if not h then return end
   local p = (h.items[itemID] or ""):match("(%S+)$") or (h.daily[itemID] or ""):match("(%S+)$")
   return p and point(p)
@@ -317,6 +317,44 @@ end
 ADB:Listen("SCAN_DATA", function() wipe(typical) end)
 ADB:Listen("HISTORY_MERGED", function() wipe(typical) end)
 
+-- Earlier versions (up to v2.6.1) kept WoW Forever's history per faction only ("Alliance", "Horde", "Neutral"), all
+-- rulesets mixed: it goes to the ruleset of the first character logging in since (sv.legacyRealm), as would any coming
+-- back later (from an ahdbmerge older than the rulesets), whichever character is logged in then.
+local function migrateRulesets(self)
+  if not self.realm then return end
+  local sv = self.sv
+  local moved = {}
+  for _, name in ipairs({"Alliance", "Horde", "Neutral"}) do
+    local old = sv.houses[name]
+    if old then
+      sv.legacyRealm = sv.legacyRealm or self.realm
+      local key = sv.legacyRealm .. " " .. name
+      local house = sv.houses[key]
+      sv.houses[name] = nil
+      if not house then
+        sv.houses[key] = old
+      else
+        local ids = {}
+        for id in pairs(old.items) do ids[id] = true end
+        for id in pairs(old.daily) do ids[id] = true end
+        for id in pairs(ids) do self:MergeHistory(house, id, decode(old.items[id]), decode(old.daily[id])) end
+        local seen = {}
+        for _, s in ipairs(house.scans) do seen[s[1]] = true end
+        for _, s in ipairs(old.scans) do if not seen[s[1]] then house.scans[#house.scans + 1] = s end end
+        table.sort(house.scans, function(a, b) return a[1] < b[1] end)
+        while #house.scans > 100 do table.remove(house.scans, 1) end
+      end
+      moved[#moved + 1] = name
+    end
+  end
+  if #moved == 0 then return end
+  for _, scan in ipairs(sv.ah or {}) do
+    if not tostring(scan.realm):find("-forever-", 1, true) then scan.realm = sv.legacyRealm end
+  end
+  self:Print("price history is now per ruleset: the one saved so far (%s) is kept as %s", table.concat(moved, ", "),
+             sv.legacyRealm)
+end
+
 -- Earlier versions kept the last 30 scans per item as tables: convert them (the next scan rolls the old ones up). The
 -- history from before the launch saved by earlier versions (or brought back by an earlier ahdbmerge) is dropped.
 ADB:Listen("LOGIN", function(self)
@@ -325,6 +363,7 @@ ADB:Listen("LOGIN", function(self)
     house.daily = house.daily or {}
     house.scans = house.scans or {}
     for id, h in pairs(house.items) do if type(h) == "table" then store(house.items, id, h) end end
-    if LAUNCH > 0 then self:CompactHistory(house, now) end
   end
+  migrateRulesets(self)
+  if LAUNCH > 0 then for _, house in pairs(self.sv.houses) do self:CompactHistory(house, now) end end
 end)

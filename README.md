@@ -46,7 +46,10 @@ character parked at the AH, another one out in the world):
   skip it). The "AHDB Scan" button above the AH shows when the next scan is possible. Away from the AH, a chat
   message tells when it's possible again, and the minimap button's tooltip (or `/ahdb next`) shows the time left
   (right-click the button for the options, drag it to move it).
-- Prices are kept separately for the Alliance, Horde and neutral (goblin) auction houses.
+- Prices are kept separately for the Alliance, Horde and neutral (goblin) auction houses of each ruleset (Normal, PvP,
+  RP, RP-PvP, Hardcore) and region, as they are separate auction houses. The price history saved before that
+  (up to v2.6.1, all rulesets together) goes to the ruleset of the first character you log in with after updating: on
+  each account, log in first on the ruleset you scanned the most.
 - Item tooltips show the vendor price per unit (the game's own line is for the whole stack) and the last scan's
   AH min and median price, how many are listed, and the 30 day min - median. Also install
   [BVP](https://www.curseforge.com/wow/addons/better-vendor-price)

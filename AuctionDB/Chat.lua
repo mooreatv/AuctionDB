@@ -165,7 +165,7 @@ end
 local function recent(key) return answered[key] and GetTime() - answered[key] < AGAIN end
 
 local function lastScan(self, house)
-  local h = self.sv.houses[house]
+  local h = self:SavedHouse(house)
   local s = h and h.scans[#h.scans]
   return s and s[1] or 0
 end

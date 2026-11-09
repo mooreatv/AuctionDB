@@ -135,7 +135,7 @@ end)
 function ADB:Presence()
   local t = {self.house or "-"}
   for i, house in ipairs(HOUSES) do
-    local h = self.sv.houses[house]
+    local h = self:SavedHouse(house)
     local last = h and h.scans[#h.scans]
     t[i + 1] = last and last[1] or 0
   end
