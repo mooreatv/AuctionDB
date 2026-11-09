@@ -103,8 +103,8 @@ ADB:On("ADDON_LOADED", function(self, name)
   for k, v in pairs(self.defaults) do if s[k] == nil then s[k] = v end end
   s.historySize = nil -- replaced by the 2 days of scans + 180 days of daily prices (History.lua)
   self.db = s
-  -- per auction house ("Alliance", "Horde", "Neutral"): items and daily = itemID -> price history (see History.lua),
-  -- scans = list of {ts, entries, items}
+  -- per auction house (see ADB:HouseKey: "na-forever-rp Alliance" on WoW Forever, "Alliance", "Horde", "Neutral"
+  -- elsewhere): items and daily = itemID -> price history (see History.lua), scans = list of {ts, entries, items}
   sv.houses = sv.houses or {}
   -- itemIDs vendors refuse although the item data has a sell price (learned at merchants, see Vendor.lua)
   sv.unsellable = sv.unsellable or {[6947] = true} -- Instant Poison
@@ -117,17 +117,49 @@ end)
 ADB:On("PLAYER_LOGIN", function(self)
   -- each login or /reload starts with a marker, so it's easy to see where to start copying in /ahdb bug
   record(("---reload--- %s %s - AHDB %s"):format(date("%Y-%m-%d"), tostring(GetUnitName("player", true)), self.version))
+  if WOW_PROJECT_ID == 18 then self.realm = self:Region() .. "-forever-" .. self:Ruleset() end
+  self:Debug("realm %s", tostring(self.realm))
   self:Fire("LOGIN")
 end)
 
 -- Helpers
 
+-- WoW Forever's rulesets (Normal, PvP, RP, RP-PvP, Hardcore) are separate worlds, each with its own auction houses:
+-- "pve", or the active ones of rp, pvp, hardcore joined with "-" ("rp-pvp").
+local RULESETS = {"RP", "PvP", "Hardcore"}
+function ADB:Ruleset()
+  local active = {}
+  for _, r in ipairs(RULESETS) do
+    local rule = Enum.GameRule and Enum.GameRule[r .. "Ruleset"]
+    if rule and C_GameRules and C_GameRules.IsGameRuleActive(rule) then active[#active + 1] = r:lower() end
+  end
+  return #active > 0 and table.concat(active, "-") or "pve"
+end
+
+-- "na", "eu", "kr"...; "xx" if the client doesn't say.
+function ADB:Region()
+  local r = GetCurrentRegionName and GetCurrentRegionName()
+  if not r or r == "" then r = C_CVar.GetCVar("portal") end
+  r = (r or ""):lower():gsub("[^a-z]", "")
+  if r == "us" then return "na" end
+  return r ~= "" and r or "xx"
+end
+
+-- Key of an auction house ("Alliance", "Horde" or "Neutral", as named everywhere else) in the saved variables, which
+-- are account wide: with the region and ruleset on WoW Forever, e.g. "na-forever-rp Alliance" (ADB.realm is
+-- "na-forever-rp", set at login; same keys in ahdbmerge, AHDBapp sync.go).
+function ADB:HouseKey(name) return self.realm and (self.realm .. " " .. name) or name end
+
+-- Saved data of one auction house, nil if there is none yet.
+function ADB:SavedHouse(name) return self.sv.houses[self:HouseKey(name)] end
+
 -- Saved data of one auction house, created on first use.
 function ADB:House(name)
-  local h = self.sv.houses[name]
+  local key = self:HouseKey(name)
+  local h = self.sv.houses[key]
   if not h then
     h = {items = {}, daily = {}, scans = {}}
-    self.sv.houses[name] = h
+    self.sv.houses[key] = h
   end
   return h
 end
