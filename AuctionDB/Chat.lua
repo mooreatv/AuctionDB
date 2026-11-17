@@ -273,6 +273,8 @@ local function noPrice(self, req, channel, sender, what, msg)
 end
 
 local function onChat(self, channel, text, sender)
+  -- in chat messaging lockdown (battlegrounds, instances in combat...) chat text is secret: can't read it
+  if issecretvalue(text) or issecretvalue(sender) then return end
   if text:sub(1, #ANSWER) == ANSWER then
     if sender == self.myName then echo[channel] = nil end
     if text:sub(1, #NONE) == NONE then

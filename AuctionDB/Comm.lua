@@ -195,6 +195,7 @@ ADB:Listen("LOGIN", function(self)
   end
   C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
   ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, msg)
+    if issecretvalue(msg) then return end
     msg = msg:lower()
     for name, t in pairs(lastSent) do
       if GetTime() - t < 10 and msg == ERR_CHAT_PLAYER_NOT_FOUND_S:format(name):lower() then
