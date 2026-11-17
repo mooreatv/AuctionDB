@@ -33,7 +33,7 @@ local CHECKBOXES = {
       "window, /ahdb live) and send them the current prices."
   }, {
     "chatAnswers", "Answer !ahdb in guild, party and raid chat",
-    "When someone writes \"!ahdb <item>\" (link, itemID or name) in guild, officer, party, raid or instance chat, " ..
+    "When someone writes \"!ahdb <item>\" (link, itemID or name) in guild, officer, party or raid chat, " ..
       "answer there with the item's last AH prices, 30 day min - median and vendor price (part of a name: the list " ..
       "of matching items). With several AHDB users there, only one answers."
   }, {"debug", "Debug output", "Print detailed messages to the chat window (always kept in /ahdb bug)."}
