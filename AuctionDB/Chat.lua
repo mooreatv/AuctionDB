@@ -1,6 +1,6 @@
--- "!ahdb <item>" (link, itemID or name) in guild, officer, party, raid or instance chat, from anyone else: answered
--- on the same channel with the item's last AH prices, its 30 day min - median and its vendor price (option "Answer
--- !ahdb in chat"). Part of a name that matches several items gets the list of their names ("which ...").
+-- "!ahdb <item>" (link, itemID or name) in guild, officer, party or raid chat (not instance chat: strangers, BGs),
+-- from anyone else: answered on the same channel with the item's last AH prices, its 30 day min - median and its
+-- vendor price (option "Answer !ahdb in chat"). Part of a name that matches several items gets the list of their names ("which ...").
 -- With several AHDB users there, one answers: they tell each other (addon messages on the party / raid / guild
 -- channel, when joining a group, at login and after each scan) when they last scanned each AH. The one with the most
 -- recent scan (not the one asking) answers right away, the others after a while if no answer came (it may have left,
@@ -14,9 +14,7 @@ local CHANNELS = {
   CHAT_MSG_PARTY = "PARTY",
   CHAT_MSG_PARTY_LEADER = "PARTY",
   CHAT_MSG_RAID = "RAID",
-  CHAT_MSG_RAID_LEADER = "RAID",
-  CHAT_MSG_INSTANCE_CHAT = "INSTANCE_CHAT",
-  CHAT_MSG_INSTANCE_CHAT_LEADER = "INSTANCE_CHAT"
+  CHAT_MSG_RAID_LEADER = "RAID"
 }
 local ANSWER = "AHDB " -- our answers start with it, which is also how we see other AHDB users' answers
 local NONE = ANSWER .. "no " -- "no price" answers: not an answer for the others (they answer if they have prices)
@@ -273,6 +271,8 @@ local function noPrice(self, req, channel, sender, what, msg)
 end
 
 local function onChat(self, channel, text, sender)
+  -- in chat messaging lockdown (instances in combat...) chat text is secret: can't read it
+  if issecretvalue(text) or issecretvalue(sender) then return end
   if text:sub(1, #ANSWER) == ANSWER then
     if sender == self.myName then echo[channel] = nil end
     if text:sub(1, #NONE) == NONE then
@@ -340,7 +340,7 @@ end
 ADB:Listen("LOGIN", function()
   for event in pairs(CHANNELS) do
     ChatFrameUtil.AddMessageEventFilter(event, function(_, _, msg, ...)
-      if msg:sub(1, #ANSWER) == ANSWER then return false, pretty(msg), ... end
+      if not issecretvalue(msg) and msg:sub(1, #ANSWER) == ANSWER then return false, pretty(msg), ... end
     end)
   end
 end)
