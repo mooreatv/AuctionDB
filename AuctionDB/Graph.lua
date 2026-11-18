@@ -143,7 +143,11 @@ local function build()
   frame.icon:SetAllPoints()
   icon:SetScript("OnEnter", function(b)
     GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
-    GameTooltip:SetItemByID(frame.itemID)
+    if frame.link then
+      GameTooltip:SetHyperlink(frame.link)
+    else
+      GameTooltip:SetItemByID(frame.itemID)
+    end
     GameTooltip:Show()
   end)
   icon:SetScript("OnLeave", GameTooltip_Hide)
@@ -152,6 +156,27 @@ local function build()
   frame.name:SetPoint("TOPLEFT", icon, "TOPRIGHT", 10, -1)
   frame.info = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   frame.info:SetPoint("BOTTOMLEFT", icon, "BOTTOMRIGHT", 10, 2)
+
+  -- random suffix gear: that suffix's prices (default) or all the item's suffixes together
+  local exact = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
+  exact:SetSize(24, 24)
+  exact:SetPoint("TOPRIGHT", -40, -20)
+  exact.Text:ClearAllPoints()
+  exact.Text:SetPoint("RIGHT", exact, "LEFT", 0, 0)
+  exact.Text:SetText("This suffix only")
+  exact:SetScript("OnClick", function(b)
+    savedState().anySuffix = not b:GetChecked()
+    draw()
+  end)
+  exact:SetScript("OnEnter", function(b)
+    GameTooltip:SetOwner(b, "ANCHOR_TOP")
+    GameTooltip:SetText("Random suffix")
+    GameTooltip:AddLine("Checked: prices of this suffix only. Unchecked: all the suffixes of the item together.", 1, 1,
+                        1, true)
+    GameTooltip:Show()
+  end)
+  exact:SetScript("OnLeave", GameTooltip_Hide)
+  frame.exact = exact
 
   frame.houseButtons = {}
   for i, house in ipairs(HOUSES) do
@@ -341,12 +366,21 @@ draw = function()
   frame.hovered = nil
   frame.highlight:Hide()
 
+  -- history key: that suffix's or the itemID's (all suffixes)
+  local exact = frame.suffix ~= nil and not savedState().anySuffix
+  local key = exact and frame.suffix or id
+  frame.exact:SetShown(frame.suffix ~= nil)
+  frame.exact:SetChecked(exact)
   local _, link, _, _, _, _, _, _, _, icon = C_Item.GetItemInfo(id)
   frame.icon:SetTexture(icon or C_Item.GetItemIconByID(id))
-  frame.name:SetText(link or ("item " .. id))
+  if exact then
+    frame.name:SetText(frame.link)
+  else
+    frame.name:SetText((link or ("item " .. id)) .. (frame.suffix and " |cFFA0A0A0(any suffix)|r" or ""))
+  end
   local vp = self:SellablePrice(id)
   local info = vp and ("Vendor " .. self:Money(vp)) or "No vendor price"
-  local last = self:LastPrice(id, house)
+  local last = self:LastPrice(key, house)
   if last then
     info = ("%s    %s AH %s ago: min %s, median %s, %d listed"):format(info, house, self:Age(last[1]),
                                                                        self:Money(last[2]), self:Money(last[3]), last[4])
@@ -358,7 +392,7 @@ draw = function()
   frame.live:SetEnabled(self:LivePeer() ~= nil)
   for i, h in ipairs(HOUSES) do
     local b = frame.houseButtons[i]
-    b:SetEnabled(self:LastPrice(id, h) ~= nil or self:BestPeer(h) ~= nil)
+    b:SetEnabled(self:LastPrice(key, h) ~= nil or self:BestPeer(h) ~= nil)
     if h == house then
       b:LockHighlight()
     else
@@ -379,12 +413,12 @@ draw = function()
   local first = daily and math.floor(now / DAY) - days + 1
   local pts = {}
   if daily then
-    for _, p in ipairs(self:DailyHistory(id, house)) do
+    for _, p in ipairs(self:DailyHistory(key, house)) do
       p.d = math.floor(p[1] / DAY) - first
       if p.d >= 0 then pts[#pts + 1] = p end
     end
   else
-    pts = self:RecentHistory(id, house)
+    pts = self:RecentHistory(key, house)
   end
   frame.points = pts
   for _, l in ipairs(frame.xlabels) do l:Hide() end
@@ -406,8 +440,9 @@ draw = function()
   frame.qmax:SetText("")
   if not lo then
     layout(0)
-    frame.empty:SetText(("%s at the %s AH in the %s"):format(#pts > 0 and "Only bids (no buyout)" or "Not seen", house,
-                                                             RANGES[range][3]))
+    frame.empty:SetText(("%s at the %s AH in the %s"):format(
+                          #pts > 0 and "Only bids (no buyout)" or (exact and "This suffix not seen" or "Not seen"),
+                          house, RANGES[range][3]))
     frame.empty:Show()
     frame.stats:SetText("")
     return
@@ -475,7 +510,7 @@ draw = function()
   -- typical price over the last week / month (median of the daily medians), lowest min in the range shown
   local function typical(n)
     local meds2 = {}
-    for _, p in ipairs(self:DailyHistory(id, house)) do if p[1] >= now - n * DAY then meds2[#meds2 + 1] = p[3] end end
+    for _, p in ipairs(self:DailyHistory(key, house)) do if p[1] >= now - n * DAY then meds2[#meds2 + 1] = p[3] end end
     return self:Median(meds2)
   end
   local low = lowest(pts)
@@ -485,10 +520,12 @@ draw = function()
                                                                                            self:Age(low[1])))
 end
 
--- Opens (or switches) the window to that item.
-function ADB:ShowItem(itemID)
+-- Opens (or switches) the window to that item; with its link: that suffix (random suffix gear).
+function ADB:ShowItem(itemID, link)
   if not frame then build() end
   frame.itemID = itemID
+  frame.suffix = self:SuffixKey(link)
+  frame.link = frame.suffix and link
   frame.range = frame.range or savedState().range or 2
   -- the open AH, else this character's faction's (another one only when neither we nor a trusted character have
   -- prices there)
@@ -511,6 +548,7 @@ end
 
 local function redraw() if frame and frame:IsShown() then draw() end end
 ADB:Listen("SCAN_DATA", redraw)
+ADB:Listen("SCAN_LINKS", redraw)
 ADB:Listen("PEERS_CHANGED", redraw)
 
 -- History from a trusted character (or our own live search) for the item shown.
@@ -530,7 +568,7 @@ end)
 ADB:Listen("LOGIN", function(self)
   hooksecurefunc("HandleModifiedItemClick", function(link)
     local id = IsAltKeyDown() and self:ItemIDFromLink(link)
-    if id then self:ShowItem(id) end
+    if id then self:ShowItem(id, link) end
   end)
 end)
 
@@ -550,5 +588,6 @@ ADB:Listen("AH_SHOW", function(self)
   end
 end)
 
-ADB:AddCommand("graph", function(self, rest) self:CommandItem(rest, "graph", function(id) self:ShowItem(id) end) end,
-               "graph <name|itemID|link> - price history graph window (also Alt-click any item)")
+ADB:AddCommand("graph", function(self, rest)
+  self:CommandItem(rest, "graph", function(id, link) self:ShowItem(id, link) end)
+end, "graph <name|itemID|link> - price history graph window (also Alt-click any item)")

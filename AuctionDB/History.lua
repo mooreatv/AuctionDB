@@ -8,6 +8,8 @@
 -- Points from trusted characters (Comm.lua) are merged in: same scan (ts) kept once, same day combined (unless one
 -- already includes the other).
 -- The history from before the WoW Forever launch (the stress test of late October, same _forever_ folder) is dropped.
+-- Random suffix gear ("of the Monkey", "of the Whale"...) on WoW Forever: the itemID's history has all its suffixes
+-- together, each suffix also has its own under "itemID:bonusIDs" (string key, e.g. "6604:12721", ADB:SuffixKey).
 local _, ADB = ...
 
 -- same rule in ahdbmerge (AHDBapp merge.go)
@@ -20,6 +22,24 @@ local DAY = 86400
 local LAUNCH = WOW_PROJECT_ID == 18 and 1793491200 or 0
 
 local function day(ts) return math.floor(ts / DAY) end
+
+-- On WoW Forever a random suffix is the link's bonus ID (one per suffix, the legacy suffixID field is unused, e.g.
+-- 12721 "of the Monkey"). The other fields that differ between otherwise identical copies (item context, the
+-- ContentTuning modifier: where it dropped) are left out.
+ADB.suffixes = WOW_PROJECT_ID == 18
+
+-- "itemID:bonusIDs" history key of the link's suffix variant, nil when it has none.
+function ADB:SuffixKey(link)
+  if not self.suffixes or not link then return end
+  local s = link:match("item:([^|]+)")
+  if not s then return end
+  -- id, enchant, 4 gems, suffixID, uniqueID, linkLevel, specID, upgradeType, itemContext, number of bonus IDs, ...
+  local f = {}
+  for v in (s .. ":"):gmatch("([^:]*):") do f[#f + 1] = v end
+  local n = tonumber(f[13]) or 0
+  if n == 0 then return end
+  return f[1] .. ":" .. table.concat(f, ":", 14, 13 + n)
+end
 
 -- The points of list ({ts, ...}) from the launch on.
 local function sinceLaunch(list)
@@ -315,6 +335,7 @@ function ADB:Typical(itemID, house, days)
 end
 
 ADB:Listen("SCAN_DATA", function() wipe(typical) end)
+ADB:Listen("SCAN_LINKS", function() wipe(typical) end)
 ADB:Listen("HISTORY_MERGED", function() wipe(typical) end)
 
 -- Earlier versions (up to v2.6.1) kept WoW Forever's history per faction only ("Alliance", "Horde", "Neutral"), all

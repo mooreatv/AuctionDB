@@ -20,6 +20,8 @@ history, even away from the AH:
   hours without scans), per day for the last 30 or 180 days. Hover for the values.
 - The quantity listed is under the graph, the vendor price is the green line.
 - 7 and 30 day median prices and the lowest price seen, for each auction house (Alliance, Horde, Neutral).
+- Random suffix gear ("of the Monkey", "of the Whale"...): the prices of that suffix, or uncheck "This suffix only" for
+  all the item's suffixes together. Opened from an AH list (no suffix there), it's always all of them.
 - Drag the bottom right corner to make the window bigger, it keeps its size and place.
 - Each auction house's last 30 scans are kept (whole days, up to 7 days), then one summary per day for 180 days, so the
   saved data stays small even when scanning every 15 minutes.
@@ -38,7 +40,9 @@ character parked at the AH, another one out in the world):
 - Only between characters of the same faction (whispers don't cross factions): each faction has its own trusted
   characters. `/ahdb trust` lists who's trusted and online.
 - Out of the game, [ahdbmerge](https://github.com/mooreatv/AHDBapp#merging-price-history-between-your-wow-accounts-and-computers-wow-forever)
-  merges the price history of all the accounts of a WoW install, and keeps it in sync between your computers.
+  merges the price history of all the accounts of a WoW install, and keeps it in sync between your computers
+  (v0.4.0 or later on all of them: earlier ones drop the prices per suffix of random suffix gear). The prices shared
+  between characters in game (Alt, price window, Live) are those of all the suffixes of an item together.
 
 ## What does it do?
 
@@ -51,7 +55,9 @@ character parked at the AH, another one out in the world):
   (up to v2.6.1, all rulesets together) goes to the ruleset of the first character you log in with after updating: on
   each account, log in first on the ruleset you scanned the most.
 - Item tooltips show the vendor price per unit (the game's own line is for the whole stack) and the last scan's
-  AH min and median price, how many are listed, and the 30 day min - median. Also install
+  AH min and median price, how many are listed, and the 30 day min - median. For random suffix gear these are the
+  prices of that suffix (its "any suffix" line has all of them: min - median), or of all its suffixes when that one
+  wasn't seen yet (prices per suffix from v2.8.0 on, on WoW Forever). Also install
   [BVP](https://www.curseforge.com/wow/addons/better-vendor-price)
   (BetterVendorPrice) for full stack and stack size vendor prices: BVP then shows the vendor lines and AHDB the AH
   ones, no duplicates.
@@ -60,7 +66,8 @@ character parked at the AH, another one out in the world):
 - Price history graph of any item: Alt-click it or `/ahdb price <item>` (see above).
 - Prices shared with your characters on other accounts, and live AH prices from one parked at the AH (see above).
 - `!ahdb <item>` (link, itemID or name) in guild, party or raid chat, from anyone: AHDB answers there with the item's
-  last AH prices, its 30 day min - median and its vendor price (AHDB users see it with colors and coins). With several
+  last AH prices, its 30 day min - median and its vendor price (AHDB users see it with colors and coins; a link of
+  random suffix gear gets that suffix's prices when known). With several
   AHDB users around, one answers: the one with the most recent scan.
   Part of a name (`!ahdb cloth`) gets the list of the matching items to pick from. When nobody has a price, the one
   with the most recent scan says so.
