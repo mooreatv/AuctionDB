@@ -28,6 +28,9 @@ local function day(ts) return math.floor(ts / DAY) end
 -- ContentTuning modifier: where it dropped) are left out.
 ADB.suffixes = WOW_PROJECT_ID == 18
 
+-- Bonus ID of the previews (crafting, quest rewards...) of items that have no suffix (yet): not in actual items.
+local PREVIEW_BONUS = "3524"
+
 -- "itemID:bonusIDs" history key of the link's suffix variant, nil when it has none.
 function ADB:SuffixKey(link)
   if not self.suffixes or not link then return end
@@ -36,9 +39,10 @@ function ADB:SuffixKey(link)
   -- id, enchant, 4 gems, suffixID, uniqueID, linkLevel, specID, upgradeType, itemContext, number of bonus IDs, ...
   local f = {}
   for v in (s .. ":"):gmatch("([^:]*):") do f[#f + 1] = v end
-  local n = tonumber(f[13]) or 0
-  if n == 0 then return end
-  return f[1] .. ":" .. table.concat(f, ":", 14, 13 + n)
+  local bonus = {}
+  for i = 14, 13 + (tonumber(f[13]) or 0) do if f[i] ~= PREVIEW_BONUS then bonus[#bonus + 1] = f[i] end end
+  if #bonus == 0 then return end
+  return f[1] .. ":" .. table.concat(bonus, ":")
 end
 
 -- The points of list ({ts, ...}) from the launch on.
