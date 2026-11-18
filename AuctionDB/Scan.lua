@@ -136,20 +136,41 @@ ADB:On("REPLICATE_ITEM_LIST_UPDATE", function(self)
   self:ReadReplicate()
 end)
 
+local function isGear(itemID)
+  local classID = select(6, C_Item.GetItemInfoInstant(itemID))
+  return classID == Enum.ItemClass.Weapon or classID == Enum.ItemClass.Armor
+end
+
 -- Copies what we need of each entry into flat arrays (the replicate data may go away when the AH closes):
 -- e = {n, item[k], count[k], buyout[k], bid[k] (next bid, 0 if none), topBid[k] (current bid, only when someone bid: one
 -- at the buyout price didn't buy the auction, and no one else can, AH error HigherBid; seen 2026-11-09),
 -- timeLeft[k] (if bid), idx[k] (replicate index),
--- mine[k] (true for our own auctions), withBids, byItem, nItems; with the record full scans option also link[k],
+-- mine[k] (true for our own auctions), withBids, byItem, nItems, house, ts; on WoW Forever gear[k] (weapons and armor:
+-- random suffixes) and their link[k]; with the record full scans option also link[k] of every auction,
 -- allTimeLeft[k], minBid[k], curBid[k]},
--- also passed with the SCAN_DATA internal event.
+-- also passed with the SCAN_DATA internal event, then with SCAN_LINKS once the links are complete (ADB:CompleteLinks).
 function ADB:ReadReplicate()
   local n = C_AuctionHouse.GetNumReplicateItems()
   self:Debug("scan data after %.1fs: %d entries", GetTime() - self.scanStart, n)
-  local e = {n = 0, item = {}, count = {}, buyout = {}, bid = {}, topBid = {}, timeLeft = {}, idx = {}, mine = {}}
-  -- full scan recording (Record.lua) also needs each auction's link, time left, min bid and current bid
+  local e = {
+    n = 0,
+    item = {},
+    count = {},
+    buyout = {},
+    bid = {},
+    topBid = {},
+    timeLeft = {},
+    idx = {},
+    mine = {},
+    house = self.scanHouse
+  }
+  -- suffix prices need the links of the gear, full scan recording (Record.lua) each auction's link, time left, min
+  -- bid and current bid
   local record = self.db.recordScans
-  if record then e.link, e.allTimeLeft, e.minBid, e.curBid = {}, {}, {}, {} end
+  local suffixes = self.suffixes
+  if suffixes then e.gear = {} end
+  if suffixes or record then e.link = {} end
+  if record then e.allTimeLeft, e.minBid, e.curBid = {}, {}, {} end
   local withBids = 0
   local i = 0
   local function step()
@@ -178,8 +199,10 @@ function ADB:ReadReplicate()
         e.idx[k] = idx
         -- the owner is only set on our own auctions (nil for everyone else's)
         if owner and owner ~= "" then e.mine[k] = true end
+        local gear = suffixes and isGear(itemID)
+        if gear then e.gear[k] = true end
+        if gear or record then e.link[k] = C_AuctionHouse.GetReplicateItemLink(idx) end
         if record then
-          e.link[k] = C_AuctionHouse.GetReplicateItemLink(idx)
           e.allTimeLeft[k] = e.timeLeft[k] or C_AuctionHouse.GetReplicateItemTimeLeft(idx)
           e.minBid[k] = minBid or 0
           e.curBid[k] = bidAmount or 0
@@ -217,12 +240,13 @@ function ADB:RecordHistory(e)
     if e.buyout[k] > 0 then t.units[#t.units + 1] = {math.floor(e.buyout[k] / e.count[k]), e.count[k]} end
   end
   local ts = GetServerTime()
+  e.ts = ts
   local nItems = 0
   for id, t in pairs(byItem) do
     e.current = id
     nItems = nItems + 1
     local minU, median = self:PriceStats(t.units)
-    self:AddHistoryPoint(self.scanHouse, id, ts, minU, median, t.qty)
+    self:AddHistoryPoint(e.house, id, ts, minU, median, t.qty)
   end
   e.current = nil
   local scans = self.scanHouse.scans
@@ -241,6 +265,63 @@ function ADB:ScanDone(e)
              e.withBids)
   self:Fire("SCAN_STATE")
   self:Fire("SCAN_DATA", e)
+  if e.link then
+    self:CompleteLinks(e, function()
+      if e.gear then self:RecordSuffixes(e) end
+      self:Fire("SCAN_LINKS", e)
+    end)
+  end
+end
+
+-- Some auctions have no link yet when the scan is read (their item info is still loading, ~20% of them, all there 3s
+-- later): fetch them again for up to 10s (while the AH is open), then use the item's base link for any still missing
+-- (no suffix).
+function ADB:CompleteLinks(e, done)
+  local missing = {}
+  for k = 1, e.n do if not e.link[k] and (e.allTimeLeft or e.gear[k]) then missing[#missing + 1] = k end end
+  self:Debug("%d auctions without a link yet", #missing)
+  local tries = 0
+  local function try()
+    local left = {}
+    for _, k in ipairs(missing) do
+      e.link[k] = self.ahOpen and C_AuctionHouse.GetReplicateItemLink(e.idx[k]) or nil
+      if not e.link[k] then left[#left + 1] = k end
+    end
+    missing = left
+    tries = tries + 1
+    if #missing > 0 and tries < 10 and self.ahOpen then
+      C_Timer.After(1, try)
+      return
+    end
+    for _, k in ipairs(missing) do e.link[k] = select(2, C_Item.GetItemInfo(e.item[k])) end
+    self:Debug("links completed after %d tries, %d with the item's base link", tries, #missing)
+    done()
+  end
+  try()
+end
+
+-- Min / median / quantity of each suffix variant of the gear of the scan (ADB:SuffixKey), same scan time as the
+-- items' points.
+function ADB:RecordSuffixes(e)
+  local byKey, n = {}, 0
+  for k in pairs(e.gear) do
+    local key = self:SuffixKey(e.link[k])
+    if key then
+      local t = byKey[key]
+      if not t then
+        t = {qty = 0, units = {}}
+        byKey[key] = t
+        n = n + 1
+      end
+      t.qty = t.qty + e.count[k]
+      if e.buyout[k] > 0 then t.units[#t.units + 1] = {math.floor(e.buyout[k] / e.count[k]), e.count[k]} end
+    end
+  end
+  for key, t in pairs(byKey) do
+    local minU, median = self:PriceStats(t.units)
+    self:AddHistoryPoint(e.house, key, e.ts, minU, median, t.qty)
+  end
+  self:Debug("%d suffix variants recorded", n)
 end
 
 -- Error while recording the scan: say so (with the item being recorded, if any) instead of staying "in progress".

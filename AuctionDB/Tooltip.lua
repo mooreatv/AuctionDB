@@ -8,6 +8,23 @@ function ADB:Age(ts)
   return ("%dd"):format(math.floor(s / 86400))
 end
 
+-- Last scan min (and median) and the 30 day ones of the history key (itemID or suffix variant) at that house.
+local function priceLines(self, tt, key, house, label, vp)
+  local p = self:LastPrice(key, house)
+  if not p then return end
+  local ts, minU, median, qty = p[1], p[2], p[3], p[4]
+  local below = vp and minU > 0 and minU < vp
+  tt:AddDoubleLine(
+    ("%s min%s (%s ago, %d listed)"):format(label, below and " |cFF00FF00< vendor|r" or "", self:Age(ts), qty),
+    self:Money(minU), 0.6, 0.9, 1, 1, 1, 1)
+  if median ~= minU then tt:AddDoubleLine(label .. " median", self:Money(median), 0.6, 0.9, 1, 1, 1, 1) end
+  -- typical over 30 days, once there are a few
+  local tmin, tmed, days = self:Typical(key, house)
+  if days >= 3 then
+    tt:AddDoubleLine(label .. " 30 days", self:Money(tmin) .. " - " .. self:Money(tmed), 0.6, 0.9, 1, 1, 1, 1)
+  end
+end
+
 local function onItemTooltip(tt, data)
   local self = ADB
   if not (self.db and self.db.tooltip) or not data or not data.id then return end
@@ -29,21 +46,19 @@ local function onItemTooltip(tt, data)
   -- the auction houses this character can use: its faction's and the neutral one
   local own = self:PlayerHouse()
   local houses = own == "Neutral" and {own} or {own, "Neutral"}
+  -- random suffix gear: that suffix's prices, and those of all its suffixes on one line; all its suffixes' prices
+  -- when that one wasn't seen
+  local suffix = self:SuffixKey(data.guid and C_Item.GetItemLinkByGUID(data.guid) or data.hyperlink)
   for _, house in ipairs(houses) do
     local label = house == own and "AH" or "Neutral AH"
-    local p = self:LastPrice(itemID, house)
-    if p then
-      local ts, minU, median, qty = p[1], p[2], p[3], p[4]
-      local below = vp and minU > 0 and minU < vp
-      tt:AddDoubleLine(("%s min%s (%s ago, %d listed)"):format(label, below and " |cFF00FF00< vendor|r" or "",
-                                                               self:Age(ts), qty), self:Money(minU), 0.6, 0.9, 1, 1, 1,
-                       1)
-      if median ~= minU then tt:AddDoubleLine(label .. " median", self:Money(median), 0.6, 0.9, 1, 1, 1, 1) end
-      -- typical over 30 days, once there are a few
-      local tmin, tmed, days = self:Typical(itemID, house)
-      if days >= 3 then
-        tt:AddDoubleLine(label .. " 30 days", self:Money(tmin) .. " - " .. self:Money(tmed), 0.6, 0.9, 1, 1, 1, 1)
+    if suffix and self:LastPrice(suffix, house) then
+      priceLines(self, tt, suffix, house, label, vp)
+      local p = self:LastPrice(itemID, house)
+      if p then
+        tt:AddDoubleLine(label .. " any suffix", self:Money(p[2]) .. " - " .. self:Money(p[3]), 0.6, 0.9, 1, 1, 1, 1)
       end
+    else
+      priceLines(self, tt, itemID, house, suffix and (label .. " any suffix") or label, vp)
     end
   end
   -- newer prices from a trusted character of another account (Comm.lua): asked while Alt is held
@@ -77,13 +92,18 @@ ADB:On("MODIFIER_STATE_CHANGED",
 
 -- /ahdb price <name|itemID|link>: saved history (last scans, else last days) and the graph window, works away from the
 -- AH.
-local function showPrice(self, id)
-  local name = select(2, C_Item.GetItemInfo(id)) or id
-  self:Print("%s: vendor %s", name, self:Money(self:VendorPrice(id)))
+-- AH, that suffix's prices for random suffix gear (when seen).
+local function showPrice(self, id, link)
+  local houses = {"Alliance", "Horde", "Neutral"}
+  local suffix, key = self:SuffixKey(link), id
+  for _, house in ipairs(houses) do if suffix and self:LastPrice(suffix, house) then key = suffix end end
+  local name = key == suffix and link or select(2, C_Item.GetItemInfo(id)) or id
+  self:Print("%s%s: vendor %s", name, (suffix and key ~= suffix) and " (any suffix)" or "",
+             self:Money(self:VendorPrice(id)))
   local seen = false
-  for _, house in ipairs({"Alliance", "Horde", "Neutral"}) do
-    local h, what = self:RecentHistory(id, house), "scans"
-    if #h == 0 then h, what = self:DailyHistory(id, house), "days" end
+  for _, house in ipairs(houses) do
+    local h, what = self:RecentHistory(key, house), "scans"
+    if #h == 0 then h, what = self:DailyHistory(key, house), "days" end
     if #h > 0 then
       seen = true
       print(("  %s AH, last %d %s (newest first):"):format(house, math.min(#h, 5), what))
@@ -95,8 +115,9 @@ local function showPrice(self, id)
     end
   end
   if not seen then print("  not seen in any scan") end
-  self:ShowItem(id)
+  self:ShowItem(id, link)
 end
 
-ADB:AddCommand("price", function(self, rest) self:CommandItem(rest, "price", function(id) showPrice(self, id) end) end,
-               "price <name|itemID|link> - price history (chat and graph window; Alt-click any item for the window)")
+ADB:AddCommand("price", function(self, rest)
+  self:CommandItem(rest, "price", function(id, link) showPrice(self, id, link) end)
+end, "price <name|itemID|link> - price history (chat and graph window; Alt-click any item for the window)")

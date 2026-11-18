@@ -46,9 +46,10 @@ function ADB:FindItem(text, done)
   if id then return done(id) end
   local name = text:lower()
   local ids, missing, matches, seen = {}, {}, {}, {}
+  -- itemIDs only (not the suffix variants' "itemID:bonusIDs")
   for _, h in pairs(self.sv.houses) do
-    for item in pairs(h.items) do ids[item] = true end
-    for item in pairs(h.daily) do ids[item] = true end
+    for item in pairs(h.items) do if type(item) == "number" then ids[item] = true end end
+    for item in pairs(h.daily) do if type(item) == "number" then ids[item] = true end end
   end
   -- true: exact match, nil: item not loaded yet
   local function look(item)
@@ -87,6 +88,7 @@ local MAX_LISTED = 10 -- items listed by /ahdb commands when several names match
 
 -- Item argument of /ahdb commands (graph, price): link, itemID or name, as for !ahdb (ADB:FindItem). A single item of
 -- our price history matching part of the name is taken, several are listed (closest names first) to Alt-click.
+-- fn(itemID, link): the link when one was given (suffix of random suffix gear).
 function ADB:CommandItem(rest, cmd, fn)
   if rest == "" then
     self:Print("usage: /ahdb %s <item name, itemID or shift-click an item> (or Alt-click any item)", cmd)
@@ -94,7 +96,7 @@ function ADB:CommandItem(rest, cmd, fn)
   end
   self:FindItem(rest, function(id, matches)
     if not id and #matches == 1 then id = matches[1].id end
-    if id then return fn(id) end
+    if id then return fn(id, rest:match("|Hitem:") and rest) end
     if #matches == 0 then
       self:Print("no item named \"%s\" in the price history%s", rest,
                  #rest < MIN_SEARCH and (" (%d characters or more for part of a name)"):format(MIN_SEARCH) or "")
@@ -145,15 +147,17 @@ local function prices(self, id)
 end
 
 -- No "|" (chat escape) in what we send: "; " between the parts.
-local function answer(self, id)
-  local house, p = prices(self, id)
+-- For random suffix gear: link (as asked, sent unmodified) and suffix history key.
+local function answer(self, id, link, suffix)
+  local key = suffix or id
+  local house, p = prices(self, key)
   if not house then return end
-  local link = select(2, C_Item.GetItemInfo(id)) or ("item " .. id)
+  link = link or select(2, C_Item.GetItemInfo(id)) or ("item " .. id)
   local parts = {
     ("%s%s %s AH %s ago: min %s, median %s, %d listed"):format(ANSWER, link, house, self:Age(p[1]),
                                                                self:MoneyText(p[2]), self:MoneyText(p[3]), p[4])
   }
-  local tmin, tmed, days = self:Typical(id, house)
+  local tmin, tmed, days = self:Typical(key, house)
   if days >= 3 then parts[#parts + 1] = ("30 days %s-%s"):format(self:MoneyText(tmin), self:MoneyText(tmed)) end
   local vp = self:SellablePrice(id)
   if vp then parts[#parts + 1] = "vendor " .. self:MoneyText(vp) end
@@ -294,14 +298,19 @@ local function onChat(self, channel, text, sender)
   if not self.db.chatAnswers or sender == self.myName then return end
   self:FindItem(rest, function(id, matches)
     if id then
-      local house = prices(self, id)
+      -- a link of random suffix gear: that suffix's prices when we have them
+      local link = rest:match("(|c[^|]*|Hitem:.-|h|r)")
+      local suffix = self:SuffixKey(link)
+      if suffix and not prices(self, suffix) then suffix = nil end
+      local house = prices(self, suffix or id)
       if not house then
-        local link = select(2, C_Item.GetItemInfo(id)) or ("item " .. id)
-        noPrice(self, req, channel, sender, "item " .. id, ("%sno price for %s"):format(ANSWER, link))
+        local name = select(2, C_Item.GetItemInfo(id)) or ("item " .. id)
+        noPrice(self, req, channel, sender, "item " .. id, ("%sno price for %s"):format(ANSWER, name))
         return
       end
-      respond(self, req, channel, sender, channel .. ":" .. id, house, "item " .. id, true,
-              function(send) self:LoadItems({[id] = true}, function() send(answer(self, id)) end, 2) end)
+      respond(self, req, channel, sender, channel .. ":" .. id, house, "item " .. id, true, function(send)
+        self:LoadItems({[id] = true}, function() send(answer(self, id, suffix and link, suffix)) end, 2)
+      end)
     elseif #matches > 0 then
       local query = rest:gsub("[|\"]", "")
       respond(self, req, channel, sender, channel .. ":q:" .. query:lower(), self:PlayerHouse(),

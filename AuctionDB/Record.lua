@@ -25,9 +25,12 @@ local function itemKey(link)
   return (short:gsub("::+", function(m) return string.char(57 + #m) end))
 end
 
-local function itemInfo(link)
-  local _, _, rarity, _, minLevel, _, _, stackCount, _, _, sellPrice, classID, subClassID = C_Item.GetItemInfo(link)
+-- From the itemID: C_Item.GetItemInfo of the scan's links gave nothing on Forever (none of the 7068 of a scan had its
+-- info), and all these are the same for every variant of the item.
+local function itemInfo(link, id)
+  local _, _, rarity, _, minLevel, _, _, stackCount, _, _, sellPrice = C_Item.GetItemInfo(id)
   if not rarity then return link, 0 end
+  local classID, subClassID = select(6, C_Item.GetItemInfoInstant(id))
   return ("%d,%d,%d,%d,%d,%d%s"):format(sellPrice, stackCount, classID, subClassID, rarity, minLevel, link), 1
 end
 
@@ -41,12 +44,12 @@ local function itemDB(sv)
 end
 
 -- Key of the link in the item DB, adding it (or its missing item info) as needed.
-local function addItem(idb, link)
+local function addItem(idb, link, id)
   local key = itemKey(link)
   if not key then return end
   local existing = idb[key]
   if existing and existing:sub(1, 1) ~= "|" then return key end -- already there with its info
-  local value, hasInfo = itemInfo(link)
+  local value, hasInfo = itemInfo(link, id)
   if not existing then idb._count_ = idb._count_ + 1 end
   idb[key] = value
   idb._infoCount_ = idb._infoCount_ + hasInfo
@@ -59,7 +62,7 @@ function ADB:RecordScan(e)
   local idb = itemDB(self.sv)
   local byKey, keys = {}, {}
   for k = 1, e.n do
-    local key = e.link[k] and addItem(idb, e.link[k])
+    local key = e.link[k] and addItem(idb, e.link[k], e.item[k])
     if key then
       local list = byKey[key]
       if not list then
@@ -101,34 +104,12 @@ function ADB:RecordScan(e)
              #keys, math.floor(#data / 1024), self.db.keepScans)
 end
 
--- Some auctions have no link yet when the scan is read (their item info is still loading): fetch them again for up
--- to 10s (while the AH is open), then use the item's base link for any still missing, so every auction is recorded.
-function ADB:CompleteLinks(e, done)
-  local missing = {}
-  for k = 1, e.n do if not e.link[k] then missing[#missing + 1] = k end end
-  self:Debug("%d auctions without a link yet", #missing)
-  local tries = 0
-  local function try()
-    local left = {}
-    for _, k in ipairs(missing) do
-      e.link[k] = self.ahOpen and C_AuctionHouse.GetReplicateItemLink(e.idx[k]) or nil
-      if not e.link[k] then left[#left + 1] = k end
-    end
-    missing = left
-    tries = tries + 1
-    if #missing > 0 and tries < 10 and self.ahOpen then
-      C_Timer.After(1, try)
-      return
-    end
-    for _, k in ipairs(missing) do e.link[k] = select(2, C_Item.GetItemInfo(e.item[k])) end
-    self:Debug("links completed after %d tries, %d with the item's base link", tries, #missing)
-    done()
-  end
-  try()
-end
-
-ADB:Listen("SCAN_DATA", function(self, e)
-  if e.link then self:CompleteLinks(e, function() self:RecordScan(e) end) end
+-- Once every auction has its link (Scan.lua): the items' info loaded first (up to 10s), for the item DB.
+ADB:Listen("SCAN_LINKS", function(self, e)
+  if not e.allTimeLeft then return end
+  local ids = {}
+  for k = 1, e.n do ids[e.item[k]] = true end
+  self:LoadItems(ids, function() self:RecordScan(e) end, 10)
 end)
 
 ADB:AddCommand("keepscans", function(self, rest)
