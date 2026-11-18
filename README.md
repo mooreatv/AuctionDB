@@ -41,7 +41,8 @@ character parked at the AH, another one out in the world):
   characters. `/ahdb trust` lists who's trusted and online.
 - Out of the game, [ahdbmerge](https://github.com/mooreatv/AHDBapp#merging-price-history-between-your-wow-accounts-and-computers-wow-forever)
   merges the price history of all the accounts of a WoW install, and keeps it in sync between your computers
-  (v0.4.0 or later on all of them: earlier ones drop the prices per suffix of random suffix gear). The prices shared
+  (v0.4.0 or later on all of them: earlier ones drop the prices per suffix of random suffix gear, and don't get
+  them). The prices shared
   between characters in game (Alt, price window, Live) are those of all the suffixes of an item together.
 
 ## What does it do?
