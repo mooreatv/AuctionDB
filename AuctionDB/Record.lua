@@ -1,8 +1,8 @@
 -- Optional full scan recording ("Record full scans" option): every auction of the last scans, in the format of the
 -- classic AHDB (MoLibAH.lua, legacy branch) so https://github.com/mooreatv/AHDBapp can load it into its database:
 -- - saved.itemDB_2: short item key -> "sellPrice,stackCount,classID,subClassID,rarity,minLevel" .. item link (or just
---   the link while the item info isn't loaded), plus 5 meta keys (_formatVersion_ 5, _locale_, _count_, _infoCount_,
---   _created_). AHDBapp reads this exact key name.
+--   the link while the item info isn't loaded), only for the items of the kept scans, plus 5 meta keys
+--   (_formatVersion_ 5, _locale_, _count_, _infoCount_, _created_). AHDBapp reads this exact key name.
 -- - saved.ah: list of scans {realm, faction, char, ts, count, itemsCount, itemDBcount, elapsed, dataFormatVersion 6,
 --   data}, data = "key!seller/timeLeft,count,minBid,buyout,curBid&auction2...!seller2/... key2!..." (zeros left out).
 -- Forever differences: no seller names in full scans (empty seller), timeLeft is the AuctionHouseTimeLeftBand + 1
@@ -56,6 +56,25 @@ local function addItem(idb, link, id)
   return key
 end
 
+-- Drops the item DB entries no kept scan uses: each is 2 constants in the saved file, and WoW can't load one with more
+-- than 262143 (#80).
+local function pruneItemDB(idb, ah)
+  local used = {}
+  for _, scan in ipairs(ah) do for part in (scan.data or ""):gmatch("%S+") do used[part:match("^[^!]+")] = true end end
+  local count, infoCount = 0, 0
+  for key, value in pairs(idb) do
+    if not key:match("^_.*_$") then
+      if used[key] then
+        count = count + 1
+        if value:sub(1, 1) ~= "|" then infoCount = infoCount + 1 end
+      else
+        idb[key] = nil
+      end
+    end
+  end
+  idb._count_, idb._infoCount_ = count, infoCount
+end
+
 local function num(v) return (v and v > 0) and tostring(v) or "" end
 
 function ADB:RecordScan(e)
@@ -100,6 +119,8 @@ function ADB:RecordScan(e)
     seen[f] = (seen[f] or 0) + 1
     if seen[f] > self.db.keepScans then table.remove(ah, i) end
   end
+  pruneItemDB(idb, ah)
+  ah[#ah].itemDBcount = idb._count_
   self:Print("recorded the full scan: %d auctions of %d items, %d KB (keeping the last %d per auction house)", e.n,
              #keys, math.floor(#data / 1024), self.db.keepScans)
 end
