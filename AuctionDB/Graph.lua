@@ -549,6 +549,7 @@ end
 local function redraw() if frame and frame:IsShown() then draw() end end
 ADB:Listen("SCAN_DATA", redraw)
 ADB:Listen("SCAN_LINKS", redraw)
+ADB:Listen("SCAN_TOTALS", redraw)
 ADB:Listen("PEERS_CHANGED", redraw)
 
 -- History from a trusted character (or our own live search) for the item shown.

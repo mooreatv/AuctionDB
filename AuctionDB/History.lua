@@ -179,6 +179,13 @@ function ADB:AddHistoryPoint(house, id, ts, minU, median, qty)
   house.items[id] = append(house.items[id], ("%d,%.0f,%.0f,%d"):format(ts, minU, median, qty))
 end
 
+-- Replaces the item's last point when it's the one of the scan at ts (quantity corrected after the scan, Scan.lua).
+function ADB:UpdateHistoryPoint(house, id, ts, minU, median, qty)
+  local head, last = (house.items[id] or ""):match("^(.-)(%S+)$")
+  if not last or tonumber(last:match("^(%d+)")) ~= ts then return end
+  house.items[id] = head .. ("%d,%.0f,%.0f,%d"):format(ts, minU, median, qty)
+end
+
 -- Rolls the scans of the days before the recent ones into daily entries and drops the daily entries older than
 -- DAILY_DAYS, for every item of the house (only items with something to move get decoded). The scans from before the
 -- launch are dropped, their prices rolled into daily entries before the launch, so dropped with them.

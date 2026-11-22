@@ -124,6 +124,8 @@ ADB:On("AUCTION_HOUSE_CLOSED", function(self)
     self.scanState = nil
     self:Print("AH closed before the scan data arrived")
     self:Fire("SCAN_STATE")
+  else
+    self:StopTotals("AH closed")
   end
   self:Fire("AH_CLOSED")
 end)
@@ -246,6 +248,7 @@ function ADB:RecordHistory(e)
     e.current = id
     nItems = nItems + 1
     local minU, median = self:PriceStats(t.units)
+    t.min, t.median = minU, median
     self:AddHistoryPoint(e.house, id, ts, minU, median, t.qty)
   end
   e.current = nil
@@ -265,12 +268,178 @@ function ADB:ScanDone(e)
              e.withBids)
   self:Fire("SCAN_STATE")
   self:Fire("SCAN_DATA", e)
+  self:BrowseTotals(e)
   if e.link then
     self:CompleteLinks(e, function()
       if e.gear then self:RecordSuffixes(e) end
       self:Fire("SCAN_LINKS", e)
     end)
   end
+end
+
+-- The full scan's list misses part of the commodities' auctions (8-20% of the quantity of Linen Cloth, Copper Bar...
+-- at both faction AHs, the same auctions scan after scan; gear is complete; seen 2026-11-22). The AH UI's search shows
+-- them all: an empty browse search, paged to the end (as Auctionator's default scan), gives every item's total quantity
+-- and min price. Items with more listed there than in the scan get that quantity (and that min when lower) in the
+-- scan's point; the median stays the one of the auctions the scan has.
+local BROWSE_RESEND = 3 -- seconds without an answer before sending the request again
+local BROWSE_TRIES = 5
+local BROWSE_MAX = 90 -- seconds for the whole browse
+local browse -- {e, start, last (time of the last answer or request), tries, gen}
+local ourBrowse = false
+
+-- Held while another add-on uses the AH (AuctionDB.ahBusy, e.g. an AHVendorFlip buy): the client keeps only the newest
+-- pending query, ours would make theirs go unanswered.
+local function browseQuery()
+  browse.last = GetTime()
+  if ADB.ahBusy then
+    browse.held = true
+    return
+  end
+  browse.held = nil
+  ourBrowse = true
+  if browse.more then
+    C_AuctionHouse.RequestMoreBrowseResults()
+  else
+    C_AuctionHouse.SendBrowseQuery({searchString = "", sorts = {}, filters = {}, itemClassFilters = {}})
+  end
+  ourBrowse = false
+  browse.last = GetTime()
+end
+
+local function browseEnd(self, why)
+  browse = nil
+  self.scanState = nil
+  if why then self:Print("couldn't get the AH's totals (%s): commodity quantities are the scan's (may be low)", why) end
+  self:Fire("SCAN_STATE")
+end
+
+function ADB:StopTotals(why) if browse then browseEnd(self, why) end end
+
+function ADB:BrowseTotals(e)
+  if not self.ahOpen then return end
+  self.scanState = "totals"
+  self:Fire("SCAN_STATE")
+  browse = {e = e, start = GetTime(), tries = 1, gen = {}}
+  browseQuery()
+  local gen = browse.gen
+  local function watch()
+    if not browse or browse.gen ~= gen then return end
+    local now = GetTime()
+    if now - browse.start > BROWSE_MAX then
+      browseEnd(self, "no full answer after " .. BROWSE_MAX .. "s")
+      return
+    end
+    if self.ahBusy then
+      browse.last = now -- no answer expected meanwhile (a buy can also drop our pending request)
+      browse.held = true
+    elseif browse.held then
+      self:Debug("browse: AH free again, request sent")
+      browseQuery()
+    elseif now - browse.last > BROWSE_RESEND then
+      if browse.tries >= BROWSE_TRIES then
+        browseEnd(self, "no answer from the AH")
+        return
+      end
+      browse.tries = browse.tries + 1
+      self:Debug("browse: no answer, request sent again")
+      browseQuery()
+    end
+    C_Timer.After(1, watch)
+  end
+  C_Timer.After(1, watch)
+end
+
+-- itemID -> {qty, min, commodity}: minPrice is a unit price only for commodities (else a whole auction's). The AH key
+-- info (isCommodity) isn't cached for most items: then stackable items are the commodities, their item info loaded
+-- first (up to 5s).
+function ADB:ApplyTotals(e)
+  local totals, keys = {}, {}
+  for _, r in ipairs(C_AuctionHouse.GetBrowseResults()) do
+    local id = r.itemKey.itemID
+    local t = totals[id]
+    if not t then
+      t = {0, 0}
+      totals[id] = t
+      keys[id] = r.itemKey
+    end
+    t[1] = t[1] + (r.totalQuantity or 0)
+    if r.minPrice and r.minPrice > 0 and (t[2] == 0 or r.minPrice < t[2]) then t[2] = r.minPrice end
+  end
+  local load, n = {}, 0
+  for id, key in pairs(keys) do
+    local info = C_AuctionHouse.GetItemKeyInfo(key)
+    if info then
+      totals[id][3] = info.isCommodity
+    else
+      load[id] = true
+      n = n + 1
+    end
+  end
+  self:LoadItems(load, function(left)
+    for id in pairs(load) do totals[id][3] = (select(8, C_Item.GetItemInfo(id)) or 1) > 1 end
+    self:Debug("totals: %d items without AH key info (commodity from the stack size), %d of them without item info", n,
+               left)
+    self:CorrectScan(e, totals)
+  end, 5)
+end
+
+function ADB:CorrectScan(e, totals)
+  local fixed, added, diffs = 0, 0, {}
+  for id, t in pairs(e.byItem) do
+    local b = totals[id]
+    if b and b[1] > t.qty then
+      local minU = t.min
+      if b[3] and b[2] > 0 and (minU == 0 or b[2] < minU) then minU = b[2] end
+      self:UpdateHistoryPoint(e.house, id, e.ts, minU, t.median, b[1])
+      fixed = fixed + 1
+      added = added + b[1] - t.qty
+      diffs[#diffs + 1] = {id, t.qty, b[1]}
+    end
+  end
+  -- commodities with none of their auctions in the scan: the min price as median too
+  local missing = 0
+  for id, b in pairs(totals) do
+    if b[3] and not e.byItem[id] and b[1] > 0 then
+      self:AddHistoryPoint(e.house, id, e.ts, b[2], b[2], b[1])
+      missing = missing + 1
+      added = added + b[1]
+      diffs[#diffs + 1] = {id, 0, b[1]}
+    end
+  end
+  fixed = fixed + missing
+  table.sort(diffs, function(a, b) return a[3] - a[2] > b[3] - b[2] end)
+  for i = 1, math.min(10, #diffs) do
+    local d = diffs[i]
+    self:Debug("totals: %s %d in the scan, %d listed", select(2, C_Item.GetItemInfo(d[1])) or d[1], d[2], d[3])
+  end
+  self:Print("AH totals: %d items had more listed than in the scan (+%d, %d not in it at all), quantities corrected",
+             fixed, added, missing)
+  self:Fire("SCAN_TOTALS", e)
+end
+
+local function browseResults(self)
+  if not browse then return end
+  browse.last = GetTime()
+  browse.tries = 1
+  if not C_AuctionHouse.HasFullBrowseResults() then
+    browse.more = true
+    browseQuery()
+    return
+  end
+  local e = browse.e
+  self:Debug("browse: %d results in %.1fs", #C_AuctionHouse.GetBrowseResults(), GetTime() - browse.start)
+  browseEnd(self)
+  self:ApplyTotals(e)
+end
+
+ADB:On("AUCTION_HOUSE_BROWSE_RESULTS_UPDATED", browseResults)
+ADB:On("AUCTION_HOUSE_BROWSE_RESULTS_ADDED", browseResults)
+
+-- Someone else's browse search (Blizzard UI, other add-ons) replaces the results: give up.
+for _, fn in ipairs({"SendBrowseQuery", "RequestMoreBrowseResults"}) do
+  hooksecurefunc(C_AuctionHouse, fn,
+                 function() if not ourBrowse then ADB:StopTotals("another AH search was made") end end)
 end
 
 -- Some auctions have no link yet when the scan is read (their item info is still loading, ~20% of them, all there 3s
