@@ -3,7 +3,8 @@
 -- added to both price histories (a search sees every auction of the item, like a scan).
 -- Messages (Comm.lua): L "<itemID>", answered with R "<house>,<ts>,<min>,<median>,<qty>" or B "<why not>".
 -- Forever facts (AHVendorFlip probes): a query sometimes doesn't go out (no AUCTION_HOUSE_THROTTLED_MESSAGE_SENT) and
--- does when sent again; item search rows group identical auctions (quantity of them, buyoutAmount of one).
+-- does when sent again; item search rows group identical auctions (quantity of them, buyoutAmount of one); gear is
+-- listed under keys with its item level (and suffix): found with a browse search of the item's name first.
 local _, ADB = ...
 
 local SORT = {{sortOrder = Enum.AuctionHouseSortOrder.Price, reverseSort = false}}
@@ -62,9 +63,10 @@ end)
 
 -- Searching side
 
-local function finish(self, units, qty)
+local function finish(self)
   local c = current
   current = nil
+  local units, qty = c.units, c.qty
   local minU, median = self:PriceStats(units)
   local ts = GetServerTime()
   self:AddHistoryPoint(self:House(c.house), c.id, ts, minU, median, qty)
@@ -75,35 +77,74 @@ local function finish(self, units, qty)
   self:Fire("HISTORY_MERGED", c.id, c.house, self.myName, 1)
 end
 
+local nextKey
+
+-- Results of the current key not added yet (an event can come twice): marks them as added.
+local function fresh(c)
+  if c.got == c.k then return false end
+  c.got = c.k
+  return true
+end
+
 local function commodityResults(self, id)
-  local units, qty = {}, 0
+  local c = current
+  if not fresh(c) then return end
   for i = 1, C_AuctionHouse.GetNumCommoditySearchResults(id) do
     local r = C_AuctionHouse.GetCommoditySearchResultInfo(id, i)
-    units[#units + 1] = {r.unitPrice, r.quantity}
-    qty = qty + r.quantity
+    c.units[#c.units + 1] = {r.unitPrice, r.quantity}
+    c.qty = c.qty + r.quantity
   end
-  finish(self, units, qty)
+  nextKey(self)
 end
 
 local function itemResults(self, key)
-  local units, qty = {}, 0
+  local c = current
+  if not fresh(c) then return end
   for i = 1, C_AuctionHouse.GetNumItemSearchResults(key) do
     local r = C_AuctionHouse.GetItemSearchResultInfo(key, i)
     local n = math.max(r.quantity, 1)
-    if r.buyoutAmount and r.buyoutAmount > 0 then units[#units + 1] = {r.buyoutAmount, n} end
-    qty = qty + n
+    if r.buyoutAmount and r.buyoutAmount > 0 then c.units[#c.units + 1] = {r.buyoutAmount, n} end
+    c.qty = c.qty + n
   end
-  finish(self, units, qty)
+  nextKey(self)
 end
 
 -- Sends the query, again every RESEND s until the client says it went out (TRIES times).
-local function search(c, tries)
+local function search(c, key, tries)
   local before = sent
   ours = true
-  C_AuctionHouse.SendSearchQuery(c.key, SORT, true)
+  C_AuctionHouse.SendSearchQuery(key, SORT, true)
   ours = false
-  C_Timer.After(RESEND,
-                function() if current == c and sent == before and tries < TRIES then search(c, tries + 1) end end)
+  C_Timer.After(RESEND, function()
+    if current == c and c.key == key and sent == before and tries < TRIES then search(c, key, tries + 1) end
+  end)
+end
+
+-- Searches the next item key of the item (or finishes when they're all done).
+nextKey = function(self)
+  local c = current
+  c.k = c.k + 1
+  local key = c.keys[c.k]
+  if not key then
+    if c.qty > 0 then
+      finish(self)
+    else
+      current = nil
+      self:Send(c.peer, "B", c.qid, "no answer from the AH (none listed?)", "no live search result")
+    end
+    return
+  end
+  c.key = key
+  search(c, key, 1)
+  -- no event when the results didn't change since a previous search: use what's there
+  C_Timer.After(WAIT, function()
+    if current ~= c or c.key ~= key then return end
+    if C_AuctionHouse.GetNumCommoditySearchResults(c.id) > 0 then
+      commodityResults(self, c.id)
+    else
+      itemResults(self, key)
+    end
+  end)
 end
 
 local function busy(self) return current or self.scanState or self.ahBusy or GetTime() - lastForeign < QUIET end
@@ -113,22 +154,37 @@ local function reject(self, peer, qid, id, why)
   self:Send(peer, "B", qid, why, "no live search: " .. why)
 end
 
-local function start(self, peer, qid, id)
-  local c = {peer = peer, qid = qid, id = id, key = C_AuctionHouse.MakeItemKey(id), house = self.house}
-  current = c
-  search(c, 1)
-  -- no event when the results didn't change since a previous search: use what's there
-  C_Timer.After(WAIT, function()
-    if current ~= c then return end
-    if C_AuctionHouse.GetNumCommoditySearchResults(id) > 0 then
-      commodityResults(self, id)
-    elseif C_AuctionHouse.GetNumItemSearchResults(c.key) > 0 then
-      itemResults(self, c.key)
-    else
-      current = nil
-      self:Send(peer, "B", qid, "no answer from the AH (none listed?)", "no live search result")
+-- The item's keys as the AH lists them (gear: with its item level, e.g. 23 for Greater Magic Wand, and a key per
+-- suffix; the bare item ID's key finds none of it): from a browse search of its name, as the AH UI does.
+local function browseKeys(self, c)
+  local name = C_Item.GetItemInfo(c.id)
+  if not name then
+    c.keys = {C_AuctionHouse.MakeItemKey(c.id)}
+    nextKey(self)
+    return
+  end
+  c.browsing = true
+  local function done()
+    if current ~= c or not c.browsing then return end
+    c.browsing = nil
+    c.keys = {}
+    for _, r in ipairs(C_AuctionHouse.GetBrowseResults()) do
+      if r.itemKey.itemID == c.id then c.keys[#c.keys + 1] = r.itemKey end
     end
-  end)
+    if #c.keys == 0 then c.keys = {C_AuctionHouse.MakeItemKey(c.id)} end
+    nextKey(self)
+  end
+  c.browseDone = done
+  ours = true
+  C_AuctionHouse.SendBrowseQuery({searchString = name, sorts = {}, filters = {}, itemClassFilters = {}})
+  ours = false
+  C_Timer.After(WAIT, done)
+end
+
+local function start(self, peer, qid, id)
+  local c = {peer = peer, qid = qid, id = id, house = self.house, units = {}, qty = 0, k = 0}
+  current = c
+  self:LoadItems({[id] = true}, function() if current == c then browseKeys(self, c) end end, 3)
 end
 
 -- The AH is busy (our scan, a search, a sweep of another add-on, someone using it): wait for it to be free, one
@@ -168,11 +224,42 @@ ADB:OnMessage("L", function(self, sender, qid, payload)
   end
 end)
 
-ADB:On("COMMODITY_SEARCH_RESULTS_UPDATED",
-       function(self, itemID) if current and current.id == itemID then commodityResults(self, itemID) end end)
+local function browseResults()
+  if not (current and current.browsing) then return end
+  if C_AuctionHouse.HasFullBrowseResults() then
+    current.browseDone()
+  else
+    ours = true
+    C_AuctionHouse.RequestMoreBrowseResults()
+    ours = false
+  end
+end
+ADB:On("AUCTION_HOUSE_BROWSE_RESULTS_UPDATED", browseResults)
+ADB:On("AUCTION_HOUSE_BROWSE_RESULTS_ADDED", browseResults)
 
-ADB:On("ITEM_SEARCH_RESULTS_UPDATED",
-       function(self, itemKey) if current and current.id == itemKey.itemID then itemResults(self, current.key) end end)
+local function sameKey(a, b)
+  return
+    a.itemID == b.itemID and a.itemLevel == b.itemLevel and a.itemSuffix == b.itemSuffix and a.battlePetSpeciesID ==
+      b.battlePetSpeciesID
+end
+
+ADB:On("COMMODITY_SEARCH_RESULTS_UPDATED", function(self, itemID)
+  if not (current and current.key and current.id == itemID) then return end
+  if C_AuctionHouse.HasFullCommoditySearchResults(itemID) then
+    commodityResults(self, itemID)
+  else
+    C_AuctionHouse.RequestMoreCommoditySearchResults(itemID)
+  end
+end)
+
+ADB:On("ITEM_SEARCH_RESULTS_UPDATED", function(self, itemKey)
+  if not (current and current.key and sameKey(current.key, itemKey)) then return end
+  if C_AuctionHouse.HasFullItemSearchResults(current.key) then
+    itemResults(self, current.key)
+  else
+    C_AuctionHouse.RequestMoreItemSearchResults(current.key)
+  end
+end)
 
 ADB:On("AUCTION_HOUSE_THROTTLED_MESSAGE_SENT", function() sent = sent + 1 end)
 

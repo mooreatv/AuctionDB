@@ -51,6 +51,9 @@ character parked at the AH, another one out in the world):
   skip it). The "AHDB Scan" button above the AH shows when the next scan is possible. Away from the AH, a chat
   message tells when it's possible again, and the minimap button's tooltip (or `/ahdb next`) shows the time left
   (right-click the button for the options, drag it to move it).
+- The game's full scan misses part of the stackable items' auctions (commodities: cloth, ores, herbs...; up to 70% of
+  an item). Right after it, AHDB pages through the AH's own search (a few seconds) for their real quantities listed
+  and min prices, the same as the AH shows. Their median is that of the auctions the scan had.
 - Prices are kept separately for the Alliance, Horde and neutral (goblin) auction houses of each ruleset (Normal, PvP,
   RP, RP-PvP, Hardcore) and region, as they are separate auction houses. The price history saved before that
   (up to v2.6.1, all rulesets together) goes to the ruleset of the first character you log in with after updating: on
@@ -73,7 +76,8 @@ character parked at the AH, another one out in the world):
   Part of a name (`!ahdb cloth`) gets the list of the matching items to pick from. When nobody has a price, the one
   with the most recent scan says so.
 - Optionally ("Record full scans" in the options) it also keeps every auction of the last scans, which
-  [AHDBapp](https://github.com/mooreatv/AHDBapp) can load into a database for your own analysis of the economy.
+  [AHDBapp](https://github.com/mooreatv/AHDBapp) can load into a database for your own analysis of the economy
+  (as the game's full scan has them: commodities are incomplete).
 - `/ahdb bug` shows a copyable log for bug reports. `/ahdb` lists all commands.
 
 ## More information
