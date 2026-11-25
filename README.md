@@ -77,7 +77,8 @@ character parked at the AH, another one out in the world):
   with the most recent scan says so.
 - Optionally ("Record full scans" in the options) it also keeps every auction of the last scans, which
   [AHDBapp](https://github.com/mooreatv/AHDBapp) can load into a database for your own analysis of the economy
-  (as the game's full scan has them: commodities are incomplete).
+  (as the game's full scan has them: commodities are incomplete). Big auction houses fill the saved data fast: AHDB
+  drops the oldest recorded scans before it gets bigger than what WoW can load.
 - `/ahdb bug` shows a copyable log for bug reports. `/ahdb` lists all commands.
 
 ## More information

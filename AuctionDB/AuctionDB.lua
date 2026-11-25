@@ -96,6 +96,11 @@ frame:SetScript("OnEvent", function(_, event, ...) for _, fn in ipairs(handlers[
 
 ADB:On("ADDON_LOADED", function(self, name)
   if name ~= addonName then return end
+  -- the per character file (a different one) says whether AHDB saved before: if so, the account wide data failed to
+  -- load (e.g. "constant table overflow", see Size.lua)
+  AuctionDBForeverChar = AuctionDBForeverChar or {}
+  self.lost = AuctionDBForeverSaved == nil and AuctionDBForeverChar.saved
+  AuctionDBForeverChar.saved = true
   AuctionDBForeverSaved = AuctionDBForeverSaved or {}
   local sv = AuctionDBForeverSaved
   local s = sv.settings or {}
@@ -119,6 +124,12 @@ ADB:On("PLAYER_LOGIN", function(self)
   record(("---reload--- %s %s - AHDB %s"):format(date("%Y-%m-%d"), tostring(GetUnitName("player", true)), self.version))
   if WOW_PROJECT_ID == 18 then self.realm = self:Region() .. "-forever-" .. self:Ruleset() end
   self:Debug("realm %s", tostring(self.realm))
+  if self.lost then
+    self:Print(
+      "|cFFFF4040the saved data didn't load|r (Logs\\FrameXML.log says why): before you log out or /reload, " ..
+        "copy WTF\\Account\\<account>\\SavedVariables\\AuctionDB.lua somewhere safe, the next save replaces " ..
+        "it, then please report it on https://github.com/mooreatv/AuctionDB/issues")
+  end
   self:Fire("LOGIN")
 end)
 

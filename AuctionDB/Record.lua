@@ -12,14 +12,44 @@ local _, ADB = ...
 
 local ITEM_DB = "itemDB_2"
 
--- Short item key from a link, same encoding as the classic AHDB (MoLib's ItemLinkToId).
+-- Without the ContentTuning modifiers (type 28) of "i<id>:enchant:gem1:gem2:gem3:gem4:suffixID:number of bonus IDs:
+-- bonus IDs...:number of modifiers:type:value...": set on some drops (where it dropped, it seems), so otherwise
+-- identical copies each got their own key: a third of a full scan's keys (#83).
+local function dropContentTuning(short)
+  local f = {}
+  for v in (short .. ":"):gmatch("([^:]*):") do f[#f + 1] = v end
+  local m = 9 + (tonumber(f[8]) or 0) -- number of modifiers
+  local n = tonumber(f[m])
+  if not n then return short end
+  local kept = {}
+  for i = 1, n do
+    local t, v = f[m + 2 * i - 1], f[m + 2 * i]
+    if t ~= "28" then
+      kept[#kept + 1] = t
+      kept[#kept + 1] = v
+    end
+  end
+  if #kept == 2 * n then return short end
+  local out = {}
+  for i = 1, m - 1 do out[i] = f[i] end
+  out[m] = tostring(#kept / 2)
+  for _, v in ipairs(kept) do out[#out + 1] = v end
+  for i = m + 2 * n + 1, #f do out[#out + 1] = f[i] end
+  return table.concat(out, ":")
+end
+
+-- Short item key from a link, same encoding as the classic AHDB (MoLib's ItemLinkToId), without the ContentTuning
+-- modifiers.
 local function itemKey(link)
   local short = link:match("^|[^|]+|H([^|]+)|")
   if not short then return end
   short = short:gsub("^(.)[^:]+:", "%1")
   -- drop the :uniqueID:linkLevel:specID:upgradeTypeID:instanceDifficultyID section
-  short = short:gsub("^(i[-%d]+:[-%d]*:[-%d]*:[-%d]*:[-%d]*:[-%d]*:[-%d]*):[-%d]*:[-%d]*:[-%d]*:[-%d]*:[-%d]*(.*)$",
+  local dropped
+  short, dropped = short:gsub(
+                     "^(i[-%d]+:[-%d]*:[-%d]*:[-%d]*:[-%d]*:[-%d]*:[-%d]*):[-%d]*:[-%d]*:[-%d]*:[-%d]*:[-%d]*(.*)$",
                      "%1%2")
+  if dropped > 0 then short = dropContentTuning(short) end
   short = short:gsub(":[:0]*$", "")
   -- run length encoded colons: 2 -> ";", 3 -> "<", ...
   return (short:gsub("::+", function(m) return string.char(57 + #m) end))
@@ -75,6 +105,9 @@ local function pruneItemDB(idb, ah)
   idb._count_, idb._infoCount_ = count, infoCount
 end
 
+-- After dropping recorded scans (Size.lua).
+function ADB:PruneItemDB() if self.sv[ITEM_DB] then pruneItemDB(self.sv[ITEM_DB], self.sv.ah or {}) end end
+
 local function num(v) return (v and v > 0) and tostring(v) or "" end
 
 function ADB:RecordScan(e)
@@ -123,6 +156,7 @@ function ADB:RecordScan(e)
   ah[#ah].itemDBcount = idb._count_
   self:Print("recorded the full scan: %d auctions of %d items, %d KB (keeping the last %d per auction house)", e.n,
              #keys, math.floor(#data / 1024), self.db.keepScans)
+  self:FitSavedData()
 end
 
 -- Once every auction has its link (Scan.lua): the items' info loaded first (up to 10s), for the item DB.

@@ -7,6 +7,7 @@
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
 ## SavedVariables: AuctionDBForeverSaved
+## SavedVariablesPerCharacter: AuctionDBForeverChar
 ## OptionalDeps: BetterVendorPrice
 ## X-OpenSource-License: LGPLv3
 ## X-OpenSource-Releases: https://github.com/mooreatv/AuctionDB/releases
@@ -21,6 +22,7 @@ Comm.lua
 Live.lua
 Chat.lua
 Record.lua
+Size.lua
 Tooltip.lua
 Graph.lua
 Vendor.lua
